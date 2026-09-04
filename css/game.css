@@ -562,6 +562,18 @@ input:focus-visible {
 
 .character--ghost { animation: none; pointer-events: none; }
 
+/*
+ * 컷을 바꾸는 동안에는 위치·크기 트랜지션을 끈다.
+ *
+ * 전신·허리·바스트 컷은 bottom 과 height 가 서로 다르다. 기본
+ * transition 에 left/bottom/height 가 들어 있어서, data-look 이 바뀌면
+ * 새 컷이 0.45초에 걸쳐 제자리로 미끄러져 들어온다. 크로스페이드와
+ * 겹치면 인물이 흔들리는 것처럼 보인다. 실측으로 데스크톱에서 세로
+ * 109px, 높이 53px 까지 움직였다.
+ * 새 컷은 처음부터 최종 위치에 놓고 투명도만 바꾼다.
+ */
+.character.is-swapping { transition: opacity .3s ease, filter .3s ease; }
+
 .character.is-appearing { animation: character-in .55s cubic-bezier(.2,.8,.2,1) both; }
 
 .character.is-entering { animation: character-cross-in .52s cubic-bezier(.2,.72,.22,1) both; }
@@ -572,13 +584,21 @@ input:focus-visible {
   from { opacity: 0; transform: translateY(24px) scale(.985); }
 }
 
+/*
+ * 컷 교체는 순수 크로스페이드다. 위치를 건드리지 않는다.
+ *
+ * 이전에는 들어오는 컷이 (12px, 6px) 에서, 나가는 컷이 (-8px, -2px) 로
+ * 각각 이동해 두 이미지가 20px 어긋난 채 겹쳤다. 서 있는 인물이라
+ * 이 어긋남이 그대로 흔들림으로 보인다. scale 도 transform-origin 이
+ * bottom center 라 머리 위치를 움직이므로 함께 뺀다.
+ */
 @keyframes character-cross-in {
-  from { opacity: 0; transform: translate3d(12px, 6px, 0) scale(.992); }
+  from { opacity: 0; }
 }
 
 @keyframes character-cross-out {
-  from { opacity: .96; transform: translate3d(0, 0, 0) scale(1); }
-  to { opacity: 0; transform: translate3d(-8px, -2px, 0) scale(1.004); }
+  from { opacity: .96; }
+  to { opacity: 0; }
 }
 
 .cg-layer {

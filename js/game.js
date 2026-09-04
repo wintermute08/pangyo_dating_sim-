@@ -670,8 +670,8 @@
     dom.character.hidden = !visible;
     if (!visible) {
       window.clearTimeout(characterTimer);
-      dom.character.classList.remove('is-appearing', 'is-entering');
-      dom.characterGhost.classList.remove('is-leaving');
+      dom.character.classList.remove('is-appearing', 'is-entering', 'is-swapping');
+      dom.characterGhost.classList.remove('is-leaving', 'is-swapping');
       dom.characterGhost.hidden = true;
       return;
     }
@@ -681,7 +681,15 @@
     dom.characterGhost.classList.remove('is-leaving');
     dom.characterGhost.hidden = true;
 
-    if (changed && wasVisible && !config.reducedMotion) {
+    const crossfade = changed && wasVisible && !config.reducedMotion;
+
+    // src 와 data-look 을 바꾸기 전에 위치·크기 트랜지션을 꺼 둔다.
+    // 컷마다 bottom/height 가 달라서, 켜 둔 채로 바꾸면 새 컷이 0.45초
+    // 동안 제자리로 미끄러져 들어오며 인물이 흔들려 보인다.
+    dom.character.classList.toggle('is-swapping', crossfade);
+    dom.characterGhost.classList.toggle('is-swapping', crossfade);
+
+    if (crossfade) {
       dom.characterGhost.src = previous.src;
       dom.characterGhost.dataset.look = previous.crop;
       dom.characterGhost.dataset.emotion = previous.emotion;
@@ -693,13 +701,13 @@
     dom.character.dataset.emotion = nextLook;
     dom.character.alt = `${window.STORY.heroineName} · ${look}`;
 
-    if (changed && wasVisible && !config.reducedMotion) {
+    if (crossfade) {
       void dom.stage.offsetWidth;
       dom.characterGhost.classList.add('is-leaving');
       dom.character.classList.add('is-entering');
       characterTimer = window.setTimeout(() => {
-        dom.character.classList.remove('is-appearing', 'is-entering');
-        dom.characterGhost.classList.remove('is-leaving');
+        dom.character.classList.remove('is-appearing', 'is-entering', 'is-swapping');
+        dom.characterGhost.classList.remove('is-leaving', 'is-swapping');
         dom.characterGhost.hidden = true;
         characterTimer = 0;
       }, 560);
