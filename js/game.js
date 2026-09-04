@@ -7,6 +7,7 @@
     bg03_corridor_day: 'assets/bg03_corridor_day.png',
     bg04_window_afternoon: 'assets/bg04_window_afternoon.png',
     bg05_gate_sunset: 'assets/bg05_gate_sunset.png',
+    bg06_gym_afternoon: 'assets/bg06_gym_afternoon.png',
     cg01_desk_closeup: 'assets/cg01_desk_closeup.png',
     cg02_gate_sunset: 'assets/cg02_gate_sunset.png',
     cg03_face_blush: 'assets/cg03_face_blush.png'
@@ -17,7 +18,10 @@
     serious: { src: 'assets/ch_full_calm.png', crop: 'full' },
     smile: { src: 'assets/ch_waist_smile.png', crop: 'waist' },
     shy: { src: 'assets/ch_waist_blush.png', crop: 'waist' },
-    blush: { src: 'assets/ch_bust_blush.png', crop: 'bust' }
+    blush: { src: 'assets/ch_bust_blush.png', crop: 'bust' },
+    // 체육시간(씬 04) 전용. 교복 스탠딩을 기준 이미지로 의상만 바꿔 만든 컷이라
+    // 얼굴·머리·비율·포즈가 다른 컷과 같다. 표정 변형은 아직 없다.
+    hoodie_calm: { src: 'assets/ch_stand_hoodie_calm.png', crop: 'full' }
   };
 
   const PRELOAD_ASSETS = [
@@ -26,11 +30,17 @@
     'assets/title-logo-v2.png'
   ];
 
+  /*
+   * 스토리지 키에 붙은 버전은 씬 구성이 바뀔 때 올린다.
+   * 씬을 중간에 끼워 넣으면 저장된 sceneIndex 가 다른 장면을 가리켜
+   * 엉뚱한 곳에서 재개된다. 키를 올리면 옛 기록은 읽히지 않는다.
+   * v3: 체육시간 씬(04)을 추가하면서 뒤 씬 인덱스가 하나씩 밀렸다.
+   */
   const STORAGE = {
-    config: 'pangyo-vn:config:v2',
-    autosave: 'pangyo-vn:autosave:v2',
-    slot: (number) => `pangyo-vn:slot:${number}:v2`,
-    unlocks: 'pangyo-vn:unlocks:v2'
+    config: 'pangyo-vn:config:v3',
+    autosave: 'pangyo-vn:autosave:v3',
+    slot: (number) => `pangyo-vn:slot:${number}:v3`,
+    unlocks: 'pangyo-vn:unlocks:v3'
   };
 
   const DEFAULT_CONFIG = {
@@ -290,7 +300,7 @@
 
   function freshState(playerName) {
     return {
-      version: 2,
+      version: 3,
       playerName: playerName || '도윤',
       sceneIndex: 0,
       lineIndex: 0,
