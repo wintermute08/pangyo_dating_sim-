@@ -1545,6 +1545,51 @@ input[type="range"]::-webkit-slider-thumb {
   .choice-button { min-height: 48px; }
 }
 
+/* ══════════════════════════════════════════════════════════════
+   세로 화면
+
+   가로 배치는 인물을 오른쪽(76%)에 세우고 왼쪽 여백에 대사를 얹는
+   구성이다. 세로에서는 대사창이 화면 폭을 전부 쓰기 때문에 인물을
+   오른쪽으로 밀 이유가 없다. 그대로 두면 인물이 오른쪽으로 잘리고
+   왼쪽만 크게 빈다. 실측(적용 전):
+
+     iPhone 14   중심 67%  왼쪽 68px  오른쪽 64px 잘림
+     iPad        중심 72%  왼쪽 319px 오른쪽 19px 잘림
+     iPad Pro    중심 76%  왼쪽 505px 오른쪽 28px 잘림
+
+   세로에서는 인물을 화면 가운데에 세운다. 높이와 bottom 값은
+   건드리지 않는다. 전신·허리·바스트 컷은 투명 여백이 서로 달라
+   얼굴 높이를 맞춰 둔 값이므로 수평 위치만 옮긴다.
+   ══════════════════════════════════════════════════════════════ */
+@media (orientation: portrait) {
+  .character,
+  .character[data-look="waist"],
+  .character[data-look="bust"] { left: 50%; }
+}
+
+/* 태블릿 세로.
+   폭이 넓어 인물이 화면의 60% 정도밖에 차지하지 않는다. 가운데로
+   옮기는 것만으로는 양옆이 허전해서 조금 키운다. */
+@media (orientation: portrait) and (min-width: 621px) {
+  .character { max-width: 86vw; height: 86dvh; }
+  .character[data-look="waist"] { max-width: 88vw; height: 84dvh; }
+  .character[data-look="bust"] { max-width: 88vw; height: 82dvh; }
+
+  /* 대사창 도구가 오른쪽 구석에만 몰려 가운데가 비어 보인다 */
+  .dialogue-tools { justify-content: space-between; }
+  .dialogue-tools button { min-width: 72px; }
+}
+
+/* iPad Pro 급 세로(1024px 이상)는 폭이 넓어 모바일·태블릿 분기에
+   걸리지 않고 데스크톱 규칙을 그대로 받는다. 세로용 값을 따로 준다. */
+@media (orientation: portrait) and (min-width: 901px) {
+  .character { max-width: 84vw; height: 84dvh; }
+  .character[data-look="waist"] { max-width: 86vw; height: 82dvh; bottom: clamp(150px, 16dvh, 230px); }
+  .character[data-look="bust"] { max-width: 86vw; height: 80dvh; bottom: clamp(140px, 15dvh, 215px); }
+  .dialogue-panel { right: 30px; left: 30px; min-height: clamp(200px, 20dvh, 260px); }
+}
+
+
 .reduce-motion *,
 .reduce-motion *::before,
 .reduce-motion *::after {
