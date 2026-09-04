@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#dce8ff">
+  <meta name="description" content="판교고를 배경으로 펼쳐지는 10분 학원 비주얼노벨, 봄은 열 걸음 늦게 온다.">
+  <title>봄은, 열 걸음 늦게 온다 — 판교고 미연시</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;500;600&family=Nanum+Pen+Script&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/game.css">
+</head>
+<body>
+  <main id="app" class="app" aria-label="판교고 미연시">
+    <section id="loading-screen" class="screen loading-screen is-active" aria-live="polite">
+      <div class="loading-mark" aria-hidden="true"><span></span><span></span><span></span></div>
+      <p class="loading-label">봄날을 불러오는 중</p>
+      <div class="loading-track"><i id="loading-progress"></i></div>
+      <p id="loading-count" class="loading-count">0 / 14</p>
+    </section>
+
+    <section id="title-screen" class="screen title-screen" aria-labelledby="game-title">
+      <img class="title-bg" src="assets/bg01_gate_morning.png" alt="봄 하늘 아래 판교고 교정">
+      <div class="title-wash"></div>
+      <div id="title-petals" class="petals" aria-hidden="true"></div>
+
+      <div class="title-copy">
+        <p class="eyebrow">PANGYO HIGH SCHOOL · VISUAL NOVEL</p>
+        <div class="title-rule"></div>
+        <h1 id="game-title" class="visually-hidden">판교고 미연시 — 봄은, 열 걸음 늦게 온다</h1>
+        <img class="title-logo" src="assets/title-logo-v2.png" alt="판교고 미연시 — 봄은, 열 걸음 늦게 온다">
+      </div>
+
+      <nav class="title-menu" aria-label="메인 메뉴">
+        <button id="start-button" class="menu-button is-primary" type="button">
+          <span class="menu-index">01</span><strong>처음부터</strong><small>NEW STORY</small><i>→</i>
+        </button>
+        <button id="continue-button" class="menu-button" type="button" disabled>
+          <span class="menu-index">02</span><strong>이어하기</strong><small>CONTINUE</small><i>→</i>
+        </button>
+        <button class="menu-button" type="button" data-open-modal="gallery">
+          <span class="menu-index">03</span><strong>추억</strong><small>GALLERY</small><i>→</i>
+        </button>
+        <button class="menu-button" type="button" data-open-modal="config">
+          <span class="menu-index">04</span><strong>설정</strong><small>CONFIG</small><i>→</i>
+        </button>
+      </nav>
+
+      <div class="title-corner title-corner--top" aria-hidden="true"></div>
+      <div class="title-corner title-corner--bottom" aria-hidden="true"></div>
+      <div class="title-meta">
+        <span>PGHS · SINCE 2011</span>
+        <span>HEADPHONES RECOMMENDED</span>
+      </div>
+    </section>
+
+    <section id="game-screen" class="screen game-screen" aria-label="게임 화면">
+      <div id="stage" class="stage">
+        <img id="stage-bg-a" class="stage-bg is-visible" src="assets/bg01_gate_morning.png" alt="">
+        <img id="stage-bg-b" class="stage-bg" src="assets/bg01_gate_morning.png" alt="">
+        <div class="stage-atmosphere"></div>
+        <div id="game-petals" class="petals petals--game" aria-hidden="true"></div>
+
+        <img id="character" class="character" src="assets/ch_stand_calm.png" alt="판교하" hidden>
+        <div id="cg-layer" class="cg-layer" hidden>
+          <img id="cg-image" src="assets/cg01_desk_closeup.png" alt="이벤트 장면">
+        </div>
+
+        <header class="scene-hud">
+          <div class="scene-number"><span id="scene-number">01</span><i></i></div>
+          <div>
+            <p id="scene-chapter">APRIL, MONDAY</p>
+            <h2 id="scene-title">봄이 오래 머무는 복도</h2>
+          </div>
+          <div class="scene-progress" aria-label="진행도"><i id="scene-progress"></i></div>
+        </header>
+
+        <div class="quick-controls">
+          <button id="sound-toggle" class="icon-button" type="button" aria-label="소리 끄기" title="소리 켜기/끄기">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4Z"/><path class="sound-wave" d="M16 8c1.2 1 1.2 7 0 8M19 5c3 3 3 11 0 14"/></svg>
+          </button>
+          <button id="fullscreen-toggle" class="icon-button" type="button" aria-label="전체 화면" title="전체 화면">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg>
+          </button>
+        </div>
+
+        <section id="choice-panel" class="choice-panel" aria-label="선택지" hidden>
+          <p id="choice-prompt" class="choice-prompt">어떻게 대답할까?</p>
+          <div id="choice-list" class="choice-list"></div>
+          <small id="choice-note" class="choice-note"></small>
+        </section>
+
+        <section id="dialogue-panel" class="dialogue-panel" aria-live="polite">
+          <button id="dialogue-hitbox" class="dialogue-hitbox" type="button" aria-label="대사 넘기기"></button>
+          <div class="dialogue-accent" aria-hidden="true"></div>
+          <div id="speaker-name" class="speaker-name" hidden>판교하</div>
+          <p id="dialogue-text" class="dialogue-text"></p>
+          <span id="next-indicator" class="next-indicator" aria-hidden="true">◆</span>
+          <nav class="dialogue-tools" aria-label="게임 도구">
+            <button type="button" data-open-modal="save"><span>기록</span><small>SAVE</small></button>
+            <button type="button" data-open-modal="load"><span>불러오기</span><small>LOAD</small></button>
+            <button type="button" data-open-modal="log"><span>지난 대화</span><small>LOG</small></button>
+            <button id="auto-button" type="button"><span>자동</span><small>AUTO</small></button>
+            <button type="button" data-open-modal="config"><span>설정</span><small>CONFIG</small></button>
+            <button id="title-button" type="button"><span>처음으로</span><small>TITLE</small></button>
+          </nav>
+        </section>
+
+        <div id="date-card" class="date-card" hidden>
+          <p>SPRING · 2026</p><strong id="date-card-main">4월 15일, 월요일</strong><span id="date-card-sub">졸업까지 321일 · 맑음</span>
+        </div>
+
+        <div id="story-title-card" class="story-title-card" hidden>
+          <img class="story-title-logo" src="assets/title-logo-v2.png" alt="판교고 미연시 — 봄은, 열 걸음 늦게 온다">
+        </div>
+      </div>
+    </section>
+
+    <section id="ending-screen" class="screen ending-screen" aria-labelledby="ending-title">
+      <img id="ending-bg" class="ending-bg" src="assets/cg03_face_blush.png" alt="엔딩 장면">
+      <div class="ending-wash"></div>
+      <div class="ending-content">
+        <p id="ending-code" class="ending-code">ENDING A</p>
+        <i class="ending-line"></i>
+        <h2 id="ending-title">내일도, 같은 시간에</h2>
+        <p id="ending-subtitle" class="ending-subtitle">같은 하늘을 보는 일이 우리의 계절이 되었다.</p>
+        <div id="ending-epilogue" class="ending-epilogue"></div>
+        <p id="ending-meta" class="ending-meta">엔딩 1 / 3 해금</p>
+        <div class="ending-actions">
+          <button type="button" data-open-modal="gallery">추억 보기</button>
+          <button id="replay-button" type="button">다시 시작</button>
+          <button id="ending-title-button" type="button">타이틀로</button>
+        </div>
+      </div>
+    </section>
+
+    <div id="modal-root" class="modal-root" hidden>
+      <div class="modal-backdrop" data-close-modal></div>
+
+      <section id="name-modal" class="modal-card name-modal" data-modal="name" role="dialog" aria-modal="true" aria-labelledby="name-title" hidden>
+        <p class="modal-eyebrow">BEFORE THE STORY</p>
+        <h2 id="name-title">당신의 이름을 알려주세요.</h2>
+        <p>이름은 이야기 속 대사에 자연스럽게 등장합니다.</p>
+        <form id="name-form">
+          <label for="player-name">이름</label>
+          <div class="name-input-wrap">
+            <input id="player-name" type="text" value="도윤" minlength="1" maxlength="8" autocomplete="off" required>
+            <span>님</span>
+          </div>
+          <button class="primary-action" type="submit">봄날을 시작하기 <i>→</i></button>
+        </form>
+      </section>
+
+      <section id="save-modal" class="modal-card wide-modal" data-modal="save" role="dialog" aria-modal="true" aria-labelledby="save-title" hidden>
+        <header class="modal-header">
+          <div><p class="modal-eyebrow">REMEMBER THIS MOMENT</p><h2 id="save-title">기록</h2></div>
+          <button class="modal-close" type="button" data-close-modal aria-label="닫기">×</button>
+        </header>
+        <p class="modal-description">지금의 장면을 저장할 슬롯을 선택하세요.</p>
+        <div id="save-slots" class="save-slots"></div>
+      </section>
+
+      <section id="load-modal" class="modal-card wide-modal" data-modal="load" role="dialog" aria-modal="true" aria-labelledby="load-title" hidden>
+        <header class="modal-header">
+          <div><p class="modal-eyebrow">RETURN TO A MEMORY</p><h2 id="load-title">불러오기</h2></div>
+          <button class="modal-close" type="button" data-close-modal aria-label="닫기">×</button>
+        </header>
+        <p class="modal-description">이어갈 장면을 선택하세요.</p>
+        <div id="load-slots" class="save-slots"></div>
+      </section>
+
+      <section id="log-modal" class="modal-card wide-modal" data-modal="log" role="dialog" aria-modal="true" aria-labelledby="log-title" hidden>
+        <header class="modal-header">
+          <div><p class="modal-eyebrow">WORDS WE SHARED</p><h2 id="log-title">지난 대화</h2></div>
+          <button class="modal-close" type="button" data-close-modal aria-label="닫기">×</button>
+        </header>
+        <div id="log-list" class="log-list"></div>
+      </section>
+
+      <section id="config-modal" class="modal-card config-modal" data-modal="config" role="dialog" aria-modal="true" aria-labelledby="config-title" hidden>
+        <header class="modal-header">
+          <div><p class="modal-eyebrow">AT YOUR OWN PACE</p><h2 id="config-title">설정</h2></div>
+          <button class="modal-close" type="button" data-close-modal aria-label="닫기">×</button>
+        </header>
+        <div class="setting-list">
+          <label class="setting-row"><span><strong>텍스트 속도</strong><small>글자가 나타나는 빠르기</small></span><input id="text-speed" type="range" min="8" max="48" step="1"><output id="text-speed-value">28</output></label>
+          <label class="setting-row"><span><strong>자동 진행 간격</strong><small>AUTO 모드의 대기 시간</small></span><input id="auto-delay" type="range" min="1000" max="5000" step="250"><output id="auto-delay-value">2600</output></label>
+          <label class="setting-row"><span><strong>음악</strong><small>잔잔한 배경 선율</small></span><input id="bgm-volume" type="range" min="0" max="100" step="1"><output id="bgm-volume-value">34</output></label>
+          <label class="setting-row"><span><strong>효과음</strong><small>종소리와 UI 피드백</small></span><input id="sfx-volume" type="range" min="0" max="100" step="1"><output id="sfx-volume-value">62</output></label>
+          <label class="toggle-row"><span><strong>움직임 줄이기</strong><small>꽃잎과 화면 움직임을 최소화합니다</small></span><input id="reduced-motion" type="checkbox"><i></i></label>
+        </div>
+        <button id="reset-config" class="text-action" type="button">기본값으로 되돌리기</button>
+      </section>
+
+      <section id="gallery-modal" class="modal-card gallery-modal" data-modal="gallery" role="dialog" aria-modal="true" aria-labelledby="gallery-title" hidden>
+        <header class="modal-header">
+          <div><p class="modal-eyebrow">SPRING MEMORIES</p><h2 id="gallery-title">추억</h2></div>
+          <button class="modal-close" type="button" data-close-modal aria-label="닫기">×</button>
+        </header>
+        <p class="modal-description">이야기에서 만난 장면과 엔딩이 이곳에 남습니다.</p>
+        <div id="gallery-grid" class="gallery-grid"></div>
+      </section>
+    </div>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  </main>
+
+  <noscript>이 게임을 플레이하려면 JavaScript를 켜 주세요.</noscript>
+  <script src="script/story.js"></script>
+  <script src="script/ending.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>

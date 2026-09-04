@@ -1,0 +1,14 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Local tooling
+node_modules/
+dist/
+.cache/
+
+# Original 150 MB design-export bundle. It is preserved locally under docs/reference.
+docs/reference/ui-mockup-handoff.zip
