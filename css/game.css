@@ -820,6 +820,32 @@ input:focus-visible {
   pointer-events: none;
 }
 
+/*
+ * 대사 교체는 잔상과 크로스페이드한다.
+ *
+ * 이전에는 textContent 를 비우고 곧바로 타이핑을 시작해서, 문장이
+ * 툭 끊기고 다음 문장이 튀어나왔다. 배경(1초)과 인물(0.52초)은
+ * 부드럽게 넘어가는데 글자만 즉시 바뀌니 전환이 거칠게 느껴진다.
+ * 잔상은 absolute 라 레이아웃에 영향을 주지 않는다.
+ */
+/* 클릭이 아래의 .dialogue-hitbox 로 통과해야 한다.
+   래퍼가 이벤트를 먹으면 대사 영역을 탭해도 넘어가지 않는다. */
+.dialogue-body { position: relative; z-index: 1; pointer-events: none; }
+
+.dialogue-text--ghost {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.dialogue-text--ghost.is-leaving { animation: line-out .26s ease both; }
+.dialogue-text.is-entering { animation: line-in .3s ease both; }
+.speaker-name.is-entering { animation: line-in .3s ease both; }
+
+@keyframes line-out { from { opacity: .9; } to { opacity: 0; } }
+@keyframes line-in { from { opacity: 0; } to { opacity: 1; } }
+
 .dialogue-text.is-narration {
   color: rgba(24, 35, 61, .8);
   font-style: italic;
@@ -1558,8 +1584,14 @@ input[type="range"]::-webkit-slider-thumb {
   .character { left: 76%; height: 88dvh; max-width: 48vw; bottom: 0; }
   .character[data-look="waist"] { left: 77%; height: 92dvh; max-width: 48vw; bottom: 8dvh; }
   .character[data-look="bust"] { left: 77%; height: 92dvh; max-width: 48vw; bottom: 9dvh; }
-  .dialogue-panel { right: max(12px, env(safe-area-inset-right)); bottom: max(8px, env(safe-area-inset-bottom)); left: max(12px, env(safe-area-inset-left)); min-height: 160px; padding-top: 36px; padding-bottom: 48px; }
-  .dialogue-tools { bottom: 9px; }
+  /* 화면이 낮은데 대사창 최소 높이가 160px 이라 한 줄짜리 대사에도
+     화면의 40% 넘게 차지하고 인물이 허리에서 잘렸다. 높이를 화면에
+     비례시키고 여백을 줄인다. min-height 라 긴 대사에서는 늘어난다. */
+  .dialogue-panel { right: max(12px, env(safe-area-inset-right)); bottom: max(6px, env(safe-area-inset-bottom)); left: max(12px, env(safe-area-inset-left)); min-height: clamp(92px, 26dvh, 140px); padding-top: 22px; padding-bottom: 40px; }
+  .dialogue-text { font-size: clamp(15px, 2.1vw, 19px); line-height: 1.6; }
+  .dialogue-tools { bottom: 5px; }
+  .dialogue-tools button { min-width: 62px; padding: 4px 8px; }
+  .speaker-name { top: -30px; min-width: 132px; padding: 8px 22px 7px; }
   .speaker-name { top: -33px; padding-block: 9px; }
   .choice-panel { padding-top: 50px; padding-bottom: 190px; }
   .choice-button { min-height: 48px; }

@@ -97,7 +97,10 @@
           <button id="dialogue-hitbox" class="dialogue-hitbox" type="button" aria-label="대사 넘기기"></button>
           <div class="dialogue-accent" aria-hidden="true"></div>
           <div id="speaker-name" class="speaker-name" hidden>판교하</div>
-          <p id="dialogue-text" class="dialogue-text"></p>
+          <div class="dialogue-body">
+            <p id="dialogue-ghost" class="dialogue-text dialogue-text--ghost" aria-hidden="true"></p>
+            <p id="dialogue-text" class="dialogue-text"></p>
+          </div>
           <span id="next-indicator" class="next-indicator" aria-hidden="true">◆</span>
           <nav class="dialogue-tools" aria-label="게임 도구">
             <button type="button" data-open-modal="save"><span>기록</span><small>SAVE</small></button>

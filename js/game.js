@@ -70,6 +70,7 @@
     dialoguePanel: $('#dialogue-panel'),
     dialogueHitbox: $('#dialogue-hitbox'),
     dialogueText: $('#dialogue-text'),
+    dialogueGhost: $('#dialogue-ghost'),
     speaker: $('#speaker-name'),
     next: $('#next-indicator'),
     choicePanel: $('#choice-panel'),
@@ -117,6 +118,7 @@
   let state = freshState('도윤');
   let activeBg = 'a';
   let typeTimer = 0;
+  let lineGhostTimer = 0;
   let transitionTimer = 0;
   let autoTimer = 0;
   let toastTimer = 0;
@@ -523,12 +525,47 @@
       setCharacter(true, line.look);
     }
 
+    /*
+     * 이전 문장을 잔상으로 남겨 크로스페이드한다.
+     * 지우고 곧바로 타이핑을 시작하면 문장이 툭 끊겨 보인다.
+     * 배경(1초)·인물(0.52초)은 페이드하는데 글자만 즉시 바뀌면
+     * 전환 전체가 거칠게 느껴진다.
+     */
+    const previousText = dom.dialogueText.textContent;
+    const softSwap = Boolean(previousText) && !immediate && !config.reducedMotion;
+
+    window.clearTimeout(lineGhostTimer);
+    dom.dialogueGhost.classList.remove('is-leaving');
+    dom.dialogueText.classList.remove('is-entering');
+    dom.speaker.classList.remove('is-entering');
+
+    if (softSwap) {
+      dom.dialogueGhost.textContent = previousText;
+      dom.dialogueGhost.classList.toggle('is-narration', dom.dialogueText.classList.contains('is-narration'));
+    } else {
+      dom.dialogueGhost.textContent = '';
+    }
+
     dom.speaker.hidden = !speaker;
     dom.speaker.textContent = speaker || '';
     dom.dialogueText.classList.toggle('is-narration', line.t === 'narr');
     dom.dialoguePanel.hidden = false;
     dom.dialogueText.textContent = '';
     fullText = text;
+
+    if (softSwap) {
+      void dom.dialoguePanel.offsetWidth;
+      dom.dialogueGhost.classList.add('is-leaving');
+      dom.dialogueText.classList.add('is-entering');
+      if (speaker) dom.speaker.classList.add('is-entering');
+      lineGhostTimer = window.setTimeout(() => {
+        dom.dialogueGhost.classList.remove('is-leaving');
+        dom.dialogueGhost.textContent = '';
+        dom.dialogueText.classList.remove('is-entering');
+        dom.speaker.classList.remove('is-entering');
+        lineGhostTimer = 0;
+      }, 320);
+    }
 
     if (addHistory) {
       state.history.push({
