@@ -59,6 +59,7 @@
     stage: $('#stage'),
     bgA: $('#stage-bg-a'),
     bgB: $('#stage-bg-b'),
+    characterGhost: $('#character-ghost'),
     character: $('#character'),
     cgLayer: $('#cg-layer'),
     cgImage: $('#cg-image'),
@@ -119,6 +120,7 @@
   let transitionTimer = 0;
   let autoTimer = 0;
   let toastTimer = 0;
+  let characterTimer = 0;
   let isTyping = false;
   let fullText = '';
   let busy = false;
@@ -388,9 +390,14 @@
     window.clearInterval(typeTimer);
     window.clearTimeout(transitionTimer);
     window.clearTimeout(autoTimer);
+    window.clearTimeout(characterTimer);
     typeTimer = 0;
     transitionTimer = 0;
     autoTimer = 0;
+    characterTimer = 0;
+    dom.character.classList.remove('is-appearing', 'is-entering');
+    dom.characterGhost.classList.remove('is-leaving');
+    dom.characterGhost.hidden = true;
     isTyping = false;
     busy = false;
     transitionToken += 1;
@@ -651,12 +658,59 @@
 
   function setCharacter(visible, look = 'calm') {
     const selected = LOOKS[look] || LOOKS.calm;
-    state.character = { visible, look: LOOKS[look] ? look : 'calm' };
+    const nextLook = LOOKS[look] ? look : 'calm';
+    const changed = dom.character.getAttribute('src') !== selected.src;
+    const wasVisible = !dom.character.hidden;
+    const previous = {
+      src: dom.character.getAttribute('src'),
+      crop: dom.character.dataset.look || 'full',
+      emotion: dom.character.dataset.emotion || 'calm'
+    };
+    state.character = { visible, look: nextLook };
     dom.character.hidden = !visible;
-    if (!visible) return;
+    if (!visible) {
+      window.clearTimeout(characterTimer);
+      dom.character.classList.remove('is-appearing', 'is-entering');
+      dom.characterGhost.classList.remove('is-leaving');
+      dom.characterGhost.hidden = true;
+      return;
+    }
+
+    window.clearTimeout(characterTimer);
+    dom.character.classList.remove('is-appearing', 'is-entering');
+    dom.characterGhost.classList.remove('is-leaving');
+    dom.characterGhost.hidden = true;
+
+    if (changed && wasVisible && !config.reducedMotion) {
+      dom.characterGhost.src = previous.src;
+      dom.characterGhost.dataset.look = previous.crop;
+      dom.characterGhost.dataset.emotion = previous.emotion;
+      dom.characterGhost.hidden = false;
+    }
+
     dom.character.src = selected.src;
     dom.character.dataset.look = selected.crop;
+    dom.character.dataset.emotion = nextLook;
     dom.character.alt = `${window.STORY.heroineName} · ${look}`;
+
+    if (changed && wasVisible && !config.reducedMotion) {
+      void dom.stage.offsetWidth;
+      dom.characterGhost.classList.add('is-leaving');
+      dom.character.classList.add('is-entering');
+      characterTimer = window.setTimeout(() => {
+        dom.character.classList.remove('is-appearing', 'is-entering');
+        dom.characterGhost.classList.remove('is-leaving');
+        dom.characterGhost.hidden = true;
+        characterTimer = 0;
+      }, 560);
+    } else if (!wasVisible && !config.reducedMotion) {
+      void dom.stage.offsetWidth;
+      dom.character.classList.add('is-appearing');
+      characterTimer = window.setTimeout(() => {
+        dom.character.classList.remove('is-appearing');
+        characterTimer = 0;
+      }, 590);
+    }
   }
 
   function setCg(key, immediate = false) {
@@ -1016,6 +1070,22 @@
     }
   }
 
+  function createLightMotes(container, count) {
+    if (!container) return;
+    for (let index = 0; index < count; index += 1) {
+      const mote = document.createElement('i');
+      mote.className = 'light-mote';
+      mote.style.left = `${8 + Math.random() * 84}%`;
+      mote.style.top = `${10 + Math.random() * 66}%`;
+      mote.style.setProperty('--mote-size', `${2 + Math.random() * 4}px`);
+      mote.style.setProperty('--mote-duration', `${8 + Math.random() * 9}s`);
+      mote.style.setProperty('--mote-delay', `${Math.random() * -14}s`);
+      mote.style.setProperty('--mote-x', `${-18 + Math.random() * 36}px`);
+      mote.style.setProperty('--mote-y', `${-34 - Math.random() * 28}px`);
+      container.append(mote);
+    }
+  }
+
   function initParallax() {
     window.addEventListener('pointermove', (event) => {
       if (config.reducedMotion) return;
@@ -1148,6 +1218,7 @@
     syncConfigControls();
     createPetals($('#title-petals'), 24);
     createPetals($('#game-petals'), 13);
+    createLightMotes($('#game-motes'), window.matchMedia('(max-width: 620px)').matches ? 6 : 10);
     initParallax();
     bindEvents();
     updateContinueButton();
