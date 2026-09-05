@@ -20,8 +20,10 @@
     shy: { src: 'assets/ch_waist_blush.png', crop: 'waist' },
     blush: { src: 'assets/ch_bust_blush.png', crop: 'bust' },
     // 체육시간(씬 04) 전용. 교복 스탠딩을 기준 이미지로 의상만 바꿔 만든 컷이라
-    // 얼굴·머리·비율·포즈가 다른 컷과 같다. 표정 변형은 아직 없다.
-    hoodie_calm: { src: 'assets/ch_stand_hoodie_calm.png', crop: 'full' }
+    // 얼굴·머리·비율·포즈가 다른 컷과 같다. 미소 컷은 무표정 컷을 다시
+    // 기준 이미지로 삼아 표정만 바꿨고, 정렬 오차는 최대 18px 이다.
+    hoodie_calm: { src: 'assets/ch_stand_hoodie_calm.png', crop: 'full' },
+    hoodie_smile: { src: 'assets/ch_stand_hoodie_smile.png', crop: 'full' }
   };
 
   const PRELOAD_ASSETS = [

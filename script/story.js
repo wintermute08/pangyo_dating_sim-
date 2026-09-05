@@ -157,7 +157,7 @@ window.STORY = {
         { t: 'narr', text: '그 애는 체육복 위에 회색 후드집업을 걸치고 있었다. 가슴에 진초록으로 PGHS.' },
         { t: 'say', who: 'unknown', look: 'hoodie_calm', text: '여기 왜 이렇게 추워. 나만 추운가?' },
         { t: 'say', who: 'mc', text: '4월인데 체육관만 아직 3월인 것 같아.' },
-        { t: 'say', who: 'unknown', look: 'hoodie_calm', text: '체육관은 계절이 한 박자 늦게 와. 소리처럼.' },
+        { t: 'say', who: 'unknown', look: 'hoodie_smile', text: '체육관은 계절이 한 박자 늦게 와. 소리처럼.' },
         { t: 'narr', text: '그러더니 관중석 아래로 허리를 숙였다. 수업 중에도 아직 찾고 있었다.' },
         { t: 'say', who: 'unknown', look: 'hoodie_calm', text: '지난주 체육시간에도 여기 왔었거든. 혹시나 해서.' },
         {
@@ -169,7 +169,7 @@ window.STORY = {
               text: '같이 볼게. 나는 반대쪽 끝부터.',
               affection: 0,
               react: [
-                { t: 'say', who: 'unknown', look: 'hoodie_calm', text: '오, 든든한데.' },
+                { t: 'say', who: 'unknown', look: 'hoodie_smile', text: '오, 든든한데.' },
                 { t: 'narr', text: '우리는 체육관을 반씩 나눠 가졌다. 넓이가 그제야 실감났다.' }
               ]
             },
@@ -177,7 +177,7 @@ window.STORY = {
               text: '그 후드, 잘 어울린다.',
               affection: 0,
               react: [
-                { t: 'say', who: 'unknown', look: 'hoodie_calm', text: '이거? 3년째 입는 건데.' },
+                { t: 'say', who: 'unknown', look: 'hoodie_smile', text: '이거? 3년째 입는 건데.' },
                 { t: 'narr', text: '그 애는 소매를 한 번 당겨 내렸다. 가슴의 글자가 조금 낡아 있었다.' }
               ]
             },
@@ -192,7 +192,7 @@ window.STORY = {
         },
         { t: 'narr', text: '결국 키링은 나오지 않았다. 대신 체육관 바닥의 낡은 라인들을 처음으로 다 세어 봤다.' },
         { t: 'sfx', id: 'school_bell' },
-        { t: 'say', who: 'unknown', look: 'hoodie_calm', text: '다음 시간엔 어디 볼까?' },
+        { t: 'say', who: 'unknown', look: 'hoodie_smile', text: '다음 시간엔 어디 볼까?' },
         { t: 'narr', text: '찾는 일이 어느새 약속처럼 되어 있었다.' },
         { t: 'chara', show: false }
       ]
