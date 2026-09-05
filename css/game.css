@@ -537,7 +537,7 @@ input:focus-visible {
   bottom: 0;
   z-index: 3;
   width: auto;
-  height: min(90dvh, 980px);
+  height: min(90svh, 980px);
   max-width: 58vw;
   object-fit: contain;
   object-position: bottom center;
@@ -545,34 +545,25 @@ input:focus-visible {
   translate: -50% 0;
   transform-origin: bottom center;
   animation: none;
-  transition: left .45s ease, bottom .45s ease, height .45s ease, opacity .3s ease, filter .3s ease;
+  /* 위치·크기는 트랜지션하지 않는다. 모바일에서 주소창이 숨었다
+     나타날 때 뷰포트 높이가 바뀌는데, height 에 전환이 걸려 있으면
+     인물이 0.45초 동안 스르륵 커졌다 작아진다. 실측 49px. */
+  transition: opacity .3s ease, filter .3s ease;
   will-change: transform, opacity;
   pointer-events: none;
 }
 
 .character[data-look="waist"] {
-  bottom: clamp(108px, 17dvh, 184px);
-  height: min(84dvh, 910px);
+  bottom: clamp(108px, 17svh, 184px);
+  height: min(84svh, 910px);
 }
 
 .character[data-look="bust"] {
-  bottom: clamp(100px, 15.5dvh, 168px);
-  height: min(86dvh, 930px);
+  bottom: clamp(100px, 15.5svh, 168px);
+  height: min(86svh, 930px);
 }
 
 .character--ghost { animation: none; pointer-events: none; }
-
-/*
- * 컷을 바꾸는 동안에는 위치·크기 트랜지션을 끈다.
- *
- * 전신·허리·바스트 컷은 bottom 과 height 가 서로 다르다. 기본
- * transition 에 left/bottom/height 가 들어 있어서, data-look 이 바뀌면
- * 새 컷이 0.45초에 걸쳐 제자리로 미끄러져 들어온다. 크로스페이드와
- * 겹치면 인물이 흔들리는 것처럼 보인다. 실측으로 데스크톱에서 세로
- * 109px, 높이 53px 까지 움직였다.
- * 새 컷은 처음부터 최종 위치에 놓고 투명도만 바꾼다.
- */
-.character.is-swapping { transition: opacity .3s ease, filter .3s ease; }
 
 .character.is-appearing { animation: character-in .55s cubic-bezier(.2,.8,.2,1) both; }
 
@@ -1516,9 +1507,9 @@ input[type="range"]::-webkit-slider-thumb {
   .dialogue-tools button { min-width: 58px; padding: 6px 7px; }
   .dialogue-tools span { display: none; }
   .dialogue-tools small { font-size: 8px; }
-  .character { left: 72%; max-width: 88vw; height: 82dvh; bottom: 0; }
-  .character[data-look="waist"] { max-width: 90vw; height: 80dvh; bottom: clamp(126px, 17dvh, 174px); }
-  .character[data-look="bust"] { max-width: 90vw; height: 81dvh; bottom: clamp(118px, 15.5dvh, 164px); }
+  .character { left: 72%; max-width: 88vw; height: 82svh; bottom: 0; }
+  .character[data-look="waist"] { max-width: 90vw; height: 80svh; bottom: clamp(126px, 17svh, 174px); }
+  .character[data-look="bust"] { max-width: 90vw; height: 81svh; bottom: clamp(118px, 15.5svh, 164px); }
   .scene-hud { left: 22px; top: max(18px, calc(env(safe-area-inset-top) + 10px)); }
   .save-slots { grid-template-columns: 1fr; }
   .gallery-grid { grid-template-columns: 1fr 1fr; }
@@ -1545,16 +1536,16 @@ input[type="range"]::-webkit-slider-thumb {
   .scene-number i { width: 18px; }
   .quick-controls { top: max(11px, calc(env(safe-area-inset-top) + 7px)); right: 12px; gap: 6px; }
   .icon-button { width: 38px; height: 38px; touch-action: manipulation; }
-  .character { left: 67%; max-width: 105vw; height: 82dvh; bottom: 0; }
-  .character[data-look="waist"] { max-width: 92vw; height: 78dvh; bottom: clamp(112px, 17dvh, 148px); }
-  .character[data-look="bust"] { max-width: 92vw; height: 76dvh; bottom: clamp(104px, 15.5dvh, 138px); }
-  .dialogue-panel { right: 10px; bottom: max(8px, env(safe-area-inset-bottom)); left: 10px; min-height: clamp(190px, 27dvh, 222px); padding: 42px 18px 57px; border-radius: 3px 3px 14px 3px; }
+  .character { left: 67%; max-width: 105vw; height: 82svh; bottom: 0; }
+  .character[data-look="waist"] { max-width: 92vw; height: 78svh; bottom: clamp(112px, 17svh, 148px); }
+  .character[data-look="bust"] { max-width: 92vw; height: 76svh; bottom: clamp(104px, 15.5svh, 138px); }
+  .dialogue-panel { right: 10px; bottom: max(8px, env(safe-area-inset-bottom)); left: 10px; min-height: clamp(190px, 27svh, 222px); padding: 42px 18px 57px; border-radius: 3px 3px 14px 3px; }
   .speaker-name { top: -33px; left: 14px; min-width: 120px; padding: 10px 18px; font-size: 16px; }
   .dialogue-text { max-width: 100%; font-size: clamp(15px, 4.1vw, 17px); line-height: 1.7; }
   .dialogue-tools { right: 6px; bottom: 7px; left: 6px; gap: 0; justify-content: space-between; overflow: visible; }
   .dialogue-tools button { min-width: 0; min-height: 42px; padding: 6px 3px; flex: 1; touch-action: manipulation; }
   .next-indicator { top: 43%; right: 16px; }
-  .choice-panel { padding: 70px 12px calc(clamp(198px, 29dvh, 238px) + env(safe-area-inset-bottom)); }
+  .choice-panel { padding: 70px 12px calc(clamp(198px, 29svh, 238px) + env(safe-area-inset-bottom)); }
   .choice-list { width: 100%; }
   .choice-prompt { margin-bottom: 14px; font-size: 16px; }
   .choice-button { min-height: 56px; padding: 11px 42px 11px 48px; font-size: 14px; touch-action: manipulation; }
@@ -1581,13 +1572,13 @@ input[type="range"]::-webkit-slider-thumb {
   .title-rule { margin: 12px 0 15px; }
   .title-menu { top: 50%; right: max(16px, env(safe-area-inset-right)); bottom: auto; left: auto; width: min(37vw, 360px); gap: 4px; transform: translateY(-50%); }
   .menu-button { min-height: 47px; padding-block: 6px; }
-  .character { left: 76%; height: 88dvh; max-width: 48vw; bottom: 0; }
-  .character[data-look="waist"] { left: 77%; height: 92dvh; max-width: 48vw; bottom: 8dvh; }
-  .character[data-look="bust"] { left: 77%; height: 92dvh; max-width: 48vw; bottom: 9dvh; }
+  .character { left: 76%; height: 88svh; max-width: 48vw; bottom: 0; }
+  .character[data-look="waist"] { left: 77%; height: 92svh; max-width: 48vw; bottom: 8svh; }
+  .character[data-look="bust"] { left: 77%; height: 92svh; max-width: 48vw; bottom: 9svh; }
   /* 화면이 낮은데 대사창 최소 높이가 160px 이라 한 줄짜리 대사에도
      화면의 40% 넘게 차지하고 인물이 허리에서 잘렸다. 높이를 화면에
      비례시키고 여백을 줄인다. min-height 라 긴 대사에서는 늘어난다. */
-  .dialogue-panel { right: max(12px, env(safe-area-inset-right)); bottom: max(6px, env(safe-area-inset-bottom)); left: max(12px, env(safe-area-inset-left)); min-height: clamp(92px, 26dvh, 140px); padding-top: 22px; padding-bottom: 40px; }
+  .dialogue-panel { right: max(12px, env(safe-area-inset-right)); bottom: max(6px, env(safe-area-inset-bottom)); left: max(12px, env(safe-area-inset-left)); min-height: clamp(92px, 26svh, 140px); padding-top: 22px; padding-bottom: 40px; }
   .dialogue-text { font-size: clamp(15px, 2.1vw, 19px); line-height: 1.6; }
   .dialogue-tools { bottom: 5px; }
   .dialogue-tools button { min-width: 62px; padding: 4px 8px; }
@@ -1623,9 +1614,9 @@ input[type="range"]::-webkit-slider-thumb {
    폭이 넓어 인물이 화면의 60% 정도밖에 차지하지 않는다. 가운데로
    옮기는 것만으로는 양옆이 허전해서 조금 키운다. */
 @media (orientation: portrait) and (min-width: 621px) {
-  .character { max-width: 86vw; height: 86dvh; }
-  .character[data-look="waist"] { max-width: 88vw; height: 84dvh; }
-  .character[data-look="bust"] { max-width: 88vw; height: 82dvh; }
+  .character { max-width: 86vw; height: 86svh; }
+  .character[data-look="waist"] { max-width: 88vw; height: 84svh; }
+  .character[data-look="bust"] { max-width: 88vw; height: 82svh; }
 
   /* 대사창 도구가 오른쪽 구석에만 몰려 가운데가 비어 보인다 */
   .dialogue-tools { justify-content: space-between; }
@@ -1635,10 +1626,10 @@ input[type="range"]::-webkit-slider-thumb {
 /* iPad Pro 급 세로(1024px 이상)는 폭이 넓어 모바일·태블릿 분기에
    걸리지 않고 데스크톱 규칙을 그대로 받는다. 세로용 값을 따로 준다. */
 @media (orientation: portrait) and (min-width: 901px) {
-  .character { max-width: 84vw; height: 84dvh; }
-  .character[data-look="waist"] { max-width: 86vw; height: 82dvh; bottom: clamp(150px, 16dvh, 230px); }
-  .character[data-look="bust"] { max-width: 86vw; height: 80dvh; bottom: clamp(140px, 15dvh, 215px); }
-  .dialogue-panel { right: 30px; left: 30px; min-height: clamp(200px, 20dvh, 260px); }
+  .character { max-width: 84vw; height: 84svh; }
+  .character[data-look="waist"] { max-width: 86vw; height: 82svh; bottom: clamp(150px, 16svh, 230px); }
+  .character[data-look="bust"] { max-width: 86vw; height: 80svh; bottom: clamp(140px, 15svh, 215px); }
+  .dialogue-panel { right: 30px; left: 30px; min-height: clamp(200px, 20svh, 260px); }
 }
 
 
