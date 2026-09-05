@@ -536,20 +536,43 @@ input:focus-visible {
   right: auto;
   bottom: 0;
   z-index: 3;
+  /*
+   * 박스 비율을 고정한다. width: auto 면 폭이 "높이 x 그림 비율" 로
+   * 정해지는데, 스탠딩마다 원본 비율이 달라서 컷을 바꿀 때 폭이 변한다.
+   * 가운데 정렬(translate: -50%)이라 폭이 변하면 인물이 옆으로 튄다.
+   * 실측: waist_smile(0.558) -> waist_blush(0.671) 에서 폭 422->507px,
+   * x 가 42px 이동. 같은 크롭인데도 튀었다.
+   *
+   * 비율은 가장 넓은 원본(1696x2528)에 맞춘다. 좁은 그림은 object-fit:
+   * contain 으로 높이에 맞춰 들어가고 남는 좌우는 투명이라 보이지 않는다.
+   * 넓은 쪽에 맞춰야 어떤 컷도 폭 때문에 줄어들지 않는다.
+   */
   width: auto;
+  aspect-ratio: 1696 / 2528;
   height: min(90svh, 980px);
   max-width: 58vw;
   object-fit: contain;
   object-position: bottom center;
-  filter: drop-shadow(0 20px 28px rgba(25, 35, 60, .22)) drop-shadow(0 0 1px rgba(255,255,255,.68));
+  /*
+   * 그림자는 한 겹만 쓴다.
+   *
+   * 1536x2752 짜리 알파 이미지에 drop-shadow 를 걸면 투명도가 변할 때마다
+   * 알파에서 그림자를 다시 계산한다. 두 겹이면 그 비용이 두 배가 되고,
+   * 크로스페이드 중에는 인물과 잔상 두 장에 동시에 걸린다.
+   * 실측(모바일 세로, 빠르게 넘기기): 50ms 넘게 밀린 프레임 비율이
+   * 두 겹 41% -> 한 겹 5%. 프레임 중앙값 46ms -> 34ms.
+   * 뺀 것은 0 0 1px 흰 테두리인데, 실제 표시 크기에서는 서브픽셀이라
+   * 눈에 띄지 않는다. 바닥 그림자는 그대로 둔다.
+   */
+  filter: drop-shadow(0 20px 28px rgba(25, 35, 60, .22));
   translate: -50% 0;
   transform-origin: bottom center;
   animation: none;
   /* 위치·크기는 트랜지션하지 않는다. 모바일에서 주소창이 숨었다
      나타날 때 뷰포트 높이가 바뀌는데, height 에 전환이 걸려 있으면
      인물이 0.45초 동안 스르륵 커졌다 작아진다. 실측 49px. */
-  transition: opacity .3s ease, filter .3s ease;
-  will-change: transform, opacity;
+  transition: opacity .38s ease, transform .5s cubic-bezier(.2,.8,.2,1), filter .3s ease;
+  will-change: opacity, transform;
   pointer-events: none;
 }
 
@@ -565,15 +588,15 @@ input:focus-visible {
 
 .character--ghost { animation: none; pointer-events: none; }
 
-.character.is-appearing { animation: character-in .55s cubic-bezier(.2,.8,.2,1) both; }
-
-.character.is-entering { animation: character-cross-in .52s cubic-bezier(.2,.72,.22,1) both; }
-
-.character--ghost.is-leaving { animation: character-cross-out .52s cubic-bezier(.35,0,.3,1) both; }
-
-@keyframes character-in {
-  from { opacity: 0; transform: translateY(24px) scale(.985); }
-}
+/*
+ * 컷 교체는 animation 이 아니라 transition 으로 한다.
+ *
+ * animation 은 클래스를 떼는 순간 값이 기본값으로 되돌아간다. 빠르게
+ * 넘겨서 페이드가 진행 중일 때 다음 컷이 시작되면, 투명도가 중간값에서
+ * 1 로 튀어 인물이 번쩍인다. 실측으로 0.245 -> 1 같은 도약이 10회.
+ * transition 은 현재 계산값에서 이어서 보간하므로 중간에 끊겨도 튀지
+ * 않는다. 투명도는 JS 가 인라인 스타일로 직접 준다.
+ */
 
 /*
  * 컷 교체는 순수 크로스페이드다. 위치를 건드리지 않는다.
@@ -583,15 +606,6 @@ input:focus-visible {
  * 이 어긋남이 그대로 흔들림으로 보인다. scale 도 transform-origin 이
  * bottom center 라 머리 위치를 움직이므로 함께 뺀다.
  */
-@keyframes character-cross-in {
-  from { opacity: 0; }
-}
-
-@keyframes character-cross-out {
-  from { opacity: .96; }
-  to { opacity: 0; }
-}
-
 .cg-layer {
   position: absolute;
   inset: 0;

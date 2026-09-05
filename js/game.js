@@ -409,9 +409,12 @@
     transitionTimer = 0;
     autoTimer = 0;
     characterTimer = 0;
-    dom.character.classList.remove('is-appearing', 'is-entering');
-    dom.characterGhost.classList.remove('is-leaving');
+    dom.character.style.transition = '';
+    dom.character.style.opacity = '';
+    dom.character.style.transform = '';
     dom.characterGhost.hidden = true;
+    dom.characterGhost.style.transition = '';
+    dom.characterGhost.style.opacity = '';
     isTyping = false;
     busy = false;
     transitionToken += 1;
@@ -719,24 +722,45 @@
     dom.character.hidden = !visible;
     if (!visible) {
       window.clearTimeout(characterTimer);
-      dom.character.classList.remove('is-appearing', 'is-entering');
-      dom.characterGhost.classList.remove('is-leaving');
+      dom.character.style.transition = '';
+      dom.character.style.opacity = '';
+      dom.character.style.transform = '';
       dom.characterGhost.hidden = true;
+      dom.characterGhost.style.transition = '';
+      dom.characterGhost.style.opacity = '';
       return;
     }
 
     window.clearTimeout(characterTimer);
-    dom.character.classList.remove('is-appearing', 'is-entering');
-    dom.characterGhost.classList.remove('is-leaving');
-    dom.characterGhost.hidden = true;
 
     const crossfade = changed && wasVisible && !config.reducedMotion;
 
     if (crossfade) {
-      dom.characterGhost.src = previous.src;
-      dom.characterGhost.dataset.look = previous.crop;
-      dom.characterGhost.dataset.emotion = previous.emotion;
-      dom.characterGhost.hidden = false;
+      /*
+       * 진행 중이던 페이드를 잘라내지 않는다.
+       *
+       * 지금 화면에 보이는 그림을 그 투명도 그대로 잔상으로 옮기고,
+       * 거기서부터 이어서 사라지게 한다. 빠르게 넘길 때 투명도가
+       * 중간값에서 1 로 튀던 문제가 여기서 생겼다.
+       */
+      const shown = parseFloat(window.getComputedStyle(dom.character).opacity);
+      const ghost = dom.characterGhost;
+      ghost.style.transition = 'none';
+      ghost.src = previous.src;
+      ghost.dataset.look = previous.crop;
+      ghost.dataset.emotion = previous.emotion;
+      ghost.hidden = false;
+      ghost.style.opacity = String(Number.isFinite(shown) ? shown : 1);
+
+      dom.character.style.transition = 'none';
+      dom.character.style.opacity = '0';
+      dom.character.style.transform = '';
+    } else {
+      dom.characterGhost.hidden = true;
+      dom.characterGhost.style.transition = '';
+      dom.characterGhost.style.opacity = '';
+      dom.character.style.transition = '';
+      dom.character.style.opacity = '';
     }
 
     dom.character.src = selected.src;
@@ -745,22 +769,34 @@
     dom.character.alt = `${window.STORY.heroineName} · ${look}`;
 
     if (crossfade) {
-      void dom.stage.offsetWidth;
-      dom.characterGhost.classList.add('is-leaving');
-      dom.character.classList.add('is-entering');
+      void dom.stage.offsetWidth;   // 위에서 준 시작값을 확정시킨다
+      dom.character.style.transition = '';
+      dom.character.style.opacity = '1';
+      dom.characterGhost.style.transition = '';
+      dom.characterGhost.style.opacity = '0';
       characterTimer = window.setTimeout(() => {
-        dom.character.classList.remove('is-appearing', 'is-entering');
-        dom.characterGhost.classList.remove('is-leaving');
         dom.characterGhost.hidden = true;
+        dom.characterGhost.style.opacity = '';
+        dom.character.style.opacity = '';
+        characterTimer = 0;
+      }, 480);
+    } else if (!wasVisible && !config.reducedMotion) {
+      /*
+       * 첫 등장도 animation 이 아니라 transition 으로 한다.
+       * animation 은 도중에 클래스를 떼면 값이 기본값으로 튄다.
+       * 등장이 끝나기 전에 다음 대사로 넘어가면 그 튐이 보인다.
+       */
+      dom.character.style.transition = 'none';
+      dom.character.style.opacity = '0';
+      dom.character.style.transform = 'translateY(24px) scale(.985)';
+      void dom.stage.offsetWidth;
+      dom.character.style.transition = '';
+      dom.character.style.opacity = '1';
+      dom.character.style.transform = '';
+      characterTimer = window.setTimeout(() => {
+        dom.character.style.opacity = '';
         characterTimer = 0;
       }, 560);
-    } else if (!wasVisible && !config.reducedMotion) {
-      void dom.stage.offsetWidth;
-      dom.character.classList.add('is-appearing');
-      characterTimer = window.setTimeout(() => {
-        dom.character.classList.remove('is-appearing');
-        characterTimer = 0;
-      }, 590);
     }
   }
 
@@ -1252,7 +1288,14 @@
     await Promise.allSettled(unique.map((src) => new Promise((resolve) => {
       const image = new Image();
       const done = () => { loaded += 1; update(); resolve(); };
-      image.addEventListener('load', done, { once: true });
+      const ready = () => {
+        // load 는 내려받기 완료일 뿐이다. 스탠딩은 1536x2752 짜리
+        // 큰 PNG 라 처음 그릴 때 디코딩이 일어나 한 박자 늦게 나타난다.
+        // 여기서 미리 디코딩해 두면 교체가 즉시 이뤄진다.
+        if (typeof image.decode === 'function') image.decode().then(done, done);
+        else done();
+      };
+      image.addEventListener('load', ready, { once: true });
       image.addEventListener('error', done, { once: true });
       image.src = src;
     })));
