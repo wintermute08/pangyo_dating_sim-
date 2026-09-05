@@ -50,6 +50,7 @@
     autoDelay: 2600,
     bgmVolume: 34,
     sfxVolume: 62,
+    voiceVolume: 78,
     reducedMotion: false,
     muted: false
   };
@@ -118,11 +119,13 @@
       autoDelay: $('#auto-delay'),
       bgmVolume: $('#bgm-volume'),
       sfxVolume: $('#sfx-volume'),
+      voiceVolume: $('#voice-volume'),
       reducedMotion: $('#reduced-motion'),
       textSpeedValue: $('#text-speed-value'),
       autoDelayValue: $('#auto-delay-value'),
       bgmVolumeValue: $('#bgm-volume-value'),
-      sfxVolumeValue: $('#sfx-volume-value')
+      sfxVolumeValue: $('#sfx-volume-value'),
+      voiceVolumeValue: $('#voice-volume-value')
     }
   };
 
@@ -301,6 +304,84 @@
 
   const soundscape = new Soundscape();
 
+  /*
+   * 대사 음성.
+   *
+   * BGM 과 효과음은 Web Audio 로 합성하지만 음성은 미리 녹음된 mp3 라서
+   * <audio> 로 스트리밍한다. 47개를 전부 decodeAudioData 로 물고 있으면
+   * 모바일에서 메모리가 아깝고, 어차피 한 번에 한 줄만 재생한다.
+   */
+  const voice = {
+    el: null,
+    playing: false,
+
+    ensure() {
+      if (!this.el) {
+        this.el = new Audio();
+        this.el.preload = 'none';
+        this.el.addEventListener('ended', () => { this.playing = false; });
+      }
+      return this.el;
+    },
+
+    level() {
+      const value = Number.isFinite(config.voiceVolume) ? config.voiceVolume : DEFAULT_CONFIG.voiceVolume;
+      return config.muted ? 0 : value / 100;
+    },
+
+    play(line) {
+      this.stop();
+      const manifest = window.VOICE_MANIFEST;
+      if (!manifest || !line || line.t !== 'say') return;
+      if (line.who !== 'heroine' && line.who !== 'unknown') return;
+      const entry = manifest[voiceKey(line.text || '')];
+      if (!entry) return;
+      // 이름이 들어간 대사는 기본 이름으로만 녹음돼 있다. 개명했으면 자막만 나간다.
+      if (entry.hasName && state.playerName !== window.VOICE_DEFAULT_NAME) return;
+
+      const el = this.ensure();
+      el.src = entry.file;
+      el.volume = this.level();
+      this.playing = true;
+      // 길이를 알게 되면 자동 진행 대기시간을 다시 잡는다.
+      el.addEventListener('loadedmetadata', () => scheduleAuto(), { once: true });
+      const attempt = el.play();
+      // 사용자 조작 전에는 자동재생을 막는 브라우저가 있다. 조용히 넘어간다.
+      if (attempt && attempt.catch) attempt.catch(() => { this.playing = false; });
+    },
+
+    stop() {
+      this.playing = false;
+      if (!this.el) return;
+      this.el.pause();
+      try { this.el.currentTime = 0; } catch (_) { /* src 없으면 던진다 */ }
+    },
+
+    updateVolume() {
+      if (this.el) this.el.volume = this.level();
+    },
+
+    /** 남은 재생시간(ms). 아직 길이를 모르면 0 이라 글자수 기준으로 떨어진다. */
+    remaining() {
+      const el = this.el;
+      if (!el || !this.playing || el.paused || el.ended) return 0;
+      const total = el.duration;
+      if (!Number.isFinite(total) || !total) return 0;
+      return Math.max(0, (total - el.currentTime) * 1000);
+    }
+  };
+
+  /** tools/build_voice_manifest.py 의 fnv1a 와 반드시 같은 해시여야 한다. */
+  function voiceKey(text) {
+    const bytes = new TextEncoder().encode(text);
+    let h = 0x811c9dc5;
+    for (let i = 0; i < bytes.length; i += 1) {
+      h ^= bytes[i];
+      h = Math.imul(h, 0x01000193) >>> 0;
+    }
+    return h.toString(16).padStart(8, '0');
+  }
+
   function freshState(playerName) {
     return {
       version: 3,
@@ -412,6 +493,7 @@
     characterTimer = 0;
     window.clearTimeout(reactTimer);
     reactTimer = 0;
+    voice.stop();
     dom.character.classList.remove('reacts-back', 'reacts-forward', 'is-speaking');
     dom.character.style.transition = '';
     dom.character.style.opacity = '';
@@ -465,6 +547,7 @@
     if (busy || currentModal || state.awaiting === 'choice' || state.ended) return;
     window.clearTimeout(autoTimer);
     autoTimer = 0;
+    voice.stop();
     dom.next.classList.remove('is-visible');
     const line = getNextLine();
     handleLine(line);
@@ -568,6 +651,7 @@
     // 히로인이 말하는 동안만 살짝 앞으로 나온다.
     const heroineSpeaking = line.t === 'say' && line.who !== 'mc';
     dom.character.classList.toggle('is-speaking', heroineSpeaking && !config.reducedMotion);
+    voice.play(line);
 
     dom.speaker.hidden = !speaker;
     dom.speaker.textContent = speaker || '';
@@ -978,10 +1062,13 @@
   function scheduleAuto() {
     window.clearTimeout(autoTimer);
     if (!autoMode || currentModal || state.awaiting !== 'text' || isTyping) return;
+    const byText = config.autoDelay + Math.min(fullText.length * 24, 1800);
+    // 음성이 아직 나오는 중이면 끊고 넘어가지 않는다.
+    const wait = Math.max(byText, voice.remaining() + 600);
     autoTimer = window.setTimeout(() => {
       state.awaiting = 'none';
       advanceStory();
-    }, config.autoDelay + Math.min(fullText.length * 24, 1800));
+    }, wait);
   }
 
   function toggleAuto() {
@@ -1178,6 +1265,7 @@
     dom.config.autoDelay.value = config.autoDelay;
     dom.config.bgmVolume.value = config.bgmVolume;
     dom.config.sfxVolume.value = config.sfxVolume;
+    dom.config.voiceVolume.value = config.voiceVolume;
     dom.config.reducedMotion.checked = config.reducedMotion;
     updateConfigLabels();
   }
@@ -1188,11 +1276,13 @@
     dom.config.autoDelayValue.textContent = `${(config.autoDelay / 1000).toFixed(2)}초`;
     dom.config.bgmVolumeValue.textContent = config.bgmVolume;
     dom.config.sfxVolumeValue.textContent = config.sfxVolume;
+    dom.config.voiceVolumeValue.textContent = config.voiceVolume;
   }
 
   function applyConfig() {
     document.body.classList.toggle('reduce-motion', config.reducedMotion);
     soundscape.updateVolumes();
+    voice.updateVolume();
     updateConfigLabels();
     saveConfig();
   }
@@ -1314,7 +1404,8 @@
       [dom.config.textSpeed, 'textSpeed'],
       [dom.config.autoDelay, 'autoDelay'],
       [dom.config.bgmVolume, 'bgmVolume'],
-      [dom.config.sfxVolume, 'sfxVolume']
+      [dom.config.sfxVolume, 'sfxVolume'],
+      [dom.config.voiceVolume, 'voiceVolume']
     ];
     configBindings.forEach(([input, key]) => {
       input.addEventListener('input', () => {
