@@ -131,6 +131,7 @@
   let activeBg = 'a';
   let typeTimer = 0;
   let lineGhostTimer = 0;
+  let reactTimer = 0;
   let transitionTimer = 0;
   let autoTimer = 0;
   let toastTimer = 0;
@@ -409,6 +410,9 @@
     transitionTimer = 0;
     autoTimer = 0;
     characterTimer = 0;
+    window.clearTimeout(reactTimer);
+    reactTimer = 0;
+    dom.character.classList.remove('reacts-back', 'reacts-forward', 'is-speaking');
     dom.character.style.transition = '';
     dom.character.style.opacity = '';
     dom.character.style.transform = '';
@@ -561,6 +565,10 @@
       dom.dialogueGhost.textContent = '';
     }
 
+    // 히로인이 말하는 동안만 살짝 앞으로 나온다.
+    const heroineSpeaking = line.t === 'say' && line.who !== 'mc';
+    dom.character.classList.toggle('is-speaking', heroineSpeaking && !config.reducedMotion);
+
     dom.speaker.hidden = !speaker;
     dom.speaker.textContent = speaker || '';
     dom.dialogueText.classList.toggle('is-narration', line.t === 'narr');
@@ -708,6 +716,31 @@
     activeBg = activeBg === 'a' ? 'b' : 'a';
   }
 
+  /*
+   * 표정이 바뀔 때 한 번만 주는 반응. 감정 방향만 아주 얕게 표현한다.
+   * 여기 없는 표정은 반응하지 않는다. 매 줄 움직이면 산만해진다.
+   */
+  const LOOK_REACTIONS = {
+    shy: 'reacts-back',
+    blush: 'reacts-back',
+    smile: 'reacts-forward',
+    hoodie_smile: 'reacts-forward'
+  };
+
+  function playReaction(look) {
+    const cls = LOOK_REACTIONS[look];
+    window.clearTimeout(reactTimer);
+    dom.character.classList.remove('reacts-back', 'reacts-forward');
+    if (!cls || config.reducedMotion) return;
+    // 인라인 transform 이 남아 있으면 클래스가 묻힌다. 등장 직후가 그렇다.
+    if (dom.character.style.transform) return;
+    dom.character.classList.add(cls);
+    reactTimer = window.setTimeout(() => {
+      dom.character.classList.remove('reacts-back', 'reacts-forward');
+      reactTimer = 0;
+    }, 320);
+  }
+
   function setCharacter(visible, look = 'calm') {
     const selected = LOOKS[look] || LOOKS.calm;
     const nextLook = LOOKS[look] ? look : 'calm';
@@ -826,6 +859,7 @@
         dom.characterGhost.style.opacity = '';
         dom.character.style.opacity = '';
         characterTimer = 0;
+        playReaction(nextLook);
       }, 480);
     } else if (!wasVisible && !config.reducedMotion) {
       /*

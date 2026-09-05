@@ -530,12 +530,40 @@ input:focus-visible {
 
 .petals--game { opacity: .42; }
 
+/*
+ * 숨쉬기는 이 래퍼에 건다. 인물과 잔상을 함께 감싸기 때문에 컷을
+ * 교체하는 동안에도 두 장이 같은 위상으로 움직인다.
+ * 인물 요소에 직접 걸면, 잔상은 hidden 이었다가 다시 나타날 때
+ * 애니메이션이 처음부터 시작해 위상이 어긋나고 오히려 흔들려 보인다.
+ */
+.character-stage {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  transform-origin: 50% 100%;
+  /* 래스터 결과를 재사용하도록 레이어로 승격시킨다 */
+  will-change: transform;
+  animation: character-breathe 4.6s ease-in-out infinite;
+}
+
+/*
+ * 숨쉬기는 위아래 이동만 쓴다. 크기를 바꾸면 안 된다.
+ *
+ * scaleY 로 부모를 늘리면 자식(인물)의 drop-shadow 가 매 프레임 다시
+ * 래스터화된다. 실측으로 50ms 넘게 밀린 프레임이 34개에서 218개로
+ * 늘었다. 이동만 하면 이미 그려 둔 레이어를 옮기기만 하므로 값이 싸다.
+ */
+@keyframes character-breathe {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-3px); }
+}
+
 .character {
   position: absolute;
   left: 76%;
   right: auto;
   bottom: 0;
-  z-index: 3;
   /*
    * 박스 비율을 고정한다. width: auto 면 폭이 "높이 x 그림 비율" 로
    * 정해지는데, 스탠딩마다 원본 비율이 달라서 컷을 바꿀 때 폭이 변한다.
@@ -587,6 +615,18 @@ input:focus-visible {
 }
 
 .character--ghost { animation: none; pointer-events: none; }
+
+/*
+ * 말하는 동안 아주 조금 앞으로 나온다. 진폭을 크게 잡으면 인물이
+ * 들썩여 보이므로 3px 로 둔다.
+ * transform 은 등장 연출이 인라인으로 쓰는데, 등장이 끝나면 인라인을
+ * 비우므로 그때부터 이 클래스가 적용된다.
+ */
+.character.is-speaking { transform: translateY(-3px); }
+
+/* 감정에 따른 한 번짜리 반응. 표정이 바뀌는 순간에만 붙였다 뗀다. */
+.character.reacts-back { transform: translateY(3px) scale(.995); }
+.character.reacts-forward { transform: translateY(-6px) scale(1.006); }
 
 /*
  * 컷 교체는 animation 이 아니라 transition 으로 한다.
@@ -1658,6 +1698,8 @@ input[type="range"]::-webkit-slider-thumb {
 
 .reduce-motion .petals,
 .reduce-motion .light-motes { display: none; }
+
+.reduce-motion .character-stage { animation: none; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
