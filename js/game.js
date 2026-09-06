@@ -133,6 +133,7 @@
   let state = freshState('도윤');
   let activeBg = 'a';
   let typeTimer = 0;
+  let voiceLine = '';
   let lineGhostTimer = 0;
   let reactTimer = 0;
   let transitionTimer = 0;
@@ -191,6 +192,7 @@
       this.muted = value;
       config.muted = value;
       this.updateVolumes();
+      voice.updateVolume();
       updateSoundButton();
       saveConfig();
     }
@@ -305,82 +307,116 @@
   const soundscape = new Soundscape();
 
   /*
-   * 대사 음성.
+   * 대사 의성음 (모동숲 방식).
    *
-   * BGM 과 효과음은 Web Audio 로 합성하지만 음성은 미리 녹음된 mp3 라서
-   * <audio> 로 스트리밍한다. 47개를 전부 decodeAudioData 로 물고 있으면
-   * 모바일에서 메모리가 아깝고, 어차피 한 번에 한 줄만 재생한다.
+   * 녹음본 대신 글자마다 짧은 소리를 합성한다. 한글 중성을 실제 모음
+   * 포먼트로 매핑해서, 무작위 삑 소리가 아니라 그 문장을 말하는 것처럼
+   * 들리게 한다. 에셋이 없으니 대사를 늘려도 그대로 따라오고,
+   * 플레이어가 이름을 바꿔도 문제가 없다.
    */
+
+  // 중성 21개 -> (F1, F2). 여성 화자 기준 대략값.
+  // ㅏㅐㅑㅒㅓㅔㅕㅖㅗㅘㅙㅚㅛㅜㅝㅞㅟㅠㅡㅢㅣ
+  const VOWEL_FORMANTS = [
+    [900, 1400], [600, 2100], [880, 1500], [600, 2150], [700, 1150],
+    [520, 2100], [690, 1250], [520, 2150], [500, 900], [800, 1300],
+    [600, 2000], [500, 1900], [500, 1000], [400, 800], [650, 1200],
+    [520, 2050], [380, 2200], [400, 900], [420, 1500], [400, 1900], [330, 2600]
+  ];
+  const HANGUL_BASE = 0xac00;
+  const HANGUL_LAST = 0xd7a3;
+
   const voice = {
-    el: null,
-    playing: false,
+    gain: null,
+    pitch: 330,
+    // 한 대사 안에서의 진행도. 문장 끝 억양을 그리는 데 쓴다.
+    spoken: 0,
+    total: 0,
+    ending: '',
 
     ensure() {
-      if (!this.el) {
-        this.el = new Audio();
-        this.el.preload = 'none';
-        this.el.addEventListener('ended', () => { this.playing = false; });
+      if (!soundscape.ensure()) return false;
+      if (!this.gain) {
+        this.gain = soundscape.ctx.createGain();
+        this.gain.connect(soundscape.ctx.destination);
       }
-      return this.el;
-    },
-
-    level() {
-      const value = Number.isFinite(config.voiceVolume) ? config.voiceVolume : DEFAULT_CONFIG.voiceVolume;
-      return config.muted ? 0 : value / 100;
-    },
-
-    play(line) {
-      this.stop();
-      const manifest = window.VOICE_MANIFEST;
-      if (!manifest || !line || line.t !== 'say') return;
-      if (line.who !== 'heroine' && line.who !== 'unknown') return;
-      const entry = manifest[voiceKey(line.text || '')];
-      if (!entry) return;
-      // 이름이 들어간 대사는 기본 이름으로만 녹음돼 있다. 개명했으면 자막만 나간다.
-      if (entry.hasName && state.playerName !== window.VOICE_DEFAULT_NAME) return;
-
-      const el = this.ensure();
-      el.src = entry.file;
-      el.volume = this.level();
-      this.playing = true;
-      // 길이를 알게 되면 자동 진행 대기시간을 다시 잡는다.
-      el.addEventListener('loadedmetadata', () => scheduleAuto(), { once: true });
-      const attempt = el.play();
-      // 사용자 조작 전에는 자동재생을 막는 브라우저가 있다. 조용히 넘어간다.
-      if (attempt && attempt.catch) attempt.catch(() => { this.playing = false; });
-    },
-
-    stop() {
-      this.playing = false;
-      if (!this.el) return;
-      this.el.pause();
-      try { this.el.currentTime = 0; } catch (_) { /* src 없으면 던진다 */ }
+      this.updateVolume();
+      return true;
     },
 
     updateVolume() {
-      if (this.el) this.el.volume = this.level();
+      if (!this.gain) return;
+      const value = Number.isFinite(config.voiceVolume) ? config.voiceVolume : DEFAULT_CONFIG.voiceVolume;
+      this.gain.gain.value = config.muted ? 0 : (value / 100) * .12;
     },
 
-    /** 남은 재생시간(ms). 아직 길이를 모르면 0 이라 글자수 기준으로 떨어진다. */
-    remaining() {
-      const el = this.el;
-      if (!el || !this.playing || el.paused || el.ended) return 0;
-      const total = el.duration;
-      if (!Number.isFinite(total) || !total) return 0;
-      return Math.max(0, (total - el.currentTime) * 1000);
+    /** 대사 하나를 시작할 때 억양 계산에 필요한 정보를 잡아 둔다. */
+    begin(text) {
+      this.spoken = 0;
+      this.total = 0;
+      for (const ch of text) {
+        const code = ch.codePointAt(0);
+        if (code >= HANGUL_BASE && code <= HANGUL_LAST) this.total += 1;
+      }
+      const trimmed = text.trim();
+      this.ending = trimmed ? trimmed[trimmed.length - 1] : '';
+    },
+
+    /** 글자 하나에 대응하는 소리. 한글이 아니면 조용히 넘어간다. */
+    say(ch) {
+      const code = ch ? ch.codePointAt(0) : 0;
+      if (code < HANGUL_BASE || code > HANGUL_LAST) return;
+      if (!this.ensure() || config.muted) return;
+
+      const index = code - HANGUL_BASE;
+      const [f1, f2] = VOWEL_FORMANTS[Math.floor(index / 28) % 21];
+      const hasFinal = index % 28 !== 0;
+
+      // 문장 끝 억양: 물음표면 올라가고, 마침표나 말줄임이면 내려간다.
+      const progress = this.total > 1 ? this.spoken / (this.total - 1) : 0;
+      let contour = 1;
+      if (this.ending === '?') contour = 1 + .16 * progress * progress;
+      else if (this.ending === '.' || this.ending === '…') contour = 1 - .10 * progress;
+      // 글자마다 살짝 흔들지 않으면 기계적으로 들린다.
+      const f0 = this.pitch * contour * (1 + (Math.random() - .5) * .14);
+      this.spoken += 1;
+
+      const ctx = soundscape.ctx;
+      const now = ctx.currentTime;
+      // 받침이 있으면 더 빨리 닫는다. 「듣」이 「드」보다 짧게 끊긴다.
+      const dur = hasFinal ? .062 : .085;
+
+      const osc = ctx.createOscillator();
+      osc.type = 'sawtooth';
+      osc.frequency.value = f0;
+
+      const envelope = ctx.createGain();
+      envelope.gain.setValueAtTime(0, now);
+      envelope.gain.linearRampToValueAtTime(1, now + .006);
+      envelope.gain.exponentialRampToValueAtTime(.001, now + dur);
+
+      // 포먼트 두 개를 밴드패스로 근사한다.
+      [[f1, 1], [f2, .5]].forEach(([frequency, level]) => {
+        const filter = ctx.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.frequency.value = frequency;
+        filter.Q.value = 5;
+        const trim = ctx.createGain();
+        trim.gain.value = level;
+        osc.connect(filter);
+        filter.connect(trim);
+        trim.connect(envelope);
+      });
+
+      envelope.connect(this.gain);
+      osc.start(now);
+      osc.stop(now + dur + .02);
+    },
+
+    stop() {
+      this.spoken = this.total;
     }
   };
-
-  /** tools/build_voice_manifest.py 의 fnv1a 와 반드시 같은 해시여야 한다. */
-  function voiceKey(text) {
-    const bytes = new TextEncoder().encode(text);
-    let h = 0x811c9dc5;
-    for (let i = 0; i < bytes.length; i += 1) {
-      h ^= bytes[i];
-      h = Math.imul(h, 0x01000193) >>> 0;
-    }
-    return h.toString(16).padStart(8, '0');
-  }
 
   function freshState(playerName) {
     return {
@@ -651,7 +687,9 @@
     // 히로인이 말하는 동안만 살짝 앞으로 나온다.
     const heroineSpeaking = line.t === 'say' && line.who !== 'mc';
     dom.character.classList.toggle('is-speaking', heroineSpeaking && !config.reducedMotion);
-    voice.play(line);
+    // 히로인이 말할 때만 의성음을 낸다. 독백과 주인공 대사는 조용히.
+    voiceLine = heroineSpeaking ? text : '';
+    voice.begin(voiceLine);
 
     dom.speaker.hidden = !speaker;
     dom.speaker.textContent = speaker || '';
@@ -696,6 +734,7 @@
     typeTimer = window.setInterval(() => {
       index += 1;
       dom.dialogueText.textContent = characters.slice(0, index).join('');
+      if (voiceLine) voice.say(characters[index - 1]);
       if (index >= characters.length) completeTyping();
     }, config.textSpeed);
   }
@@ -1063,8 +1102,7 @@
     window.clearTimeout(autoTimer);
     if (!autoMode || currentModal || state.awaiting !== 'text' || isTyping) return;
     const byText = config.autoDelay + Math.min(fullText.length * 24, 1800);
-    // 음성이 아직 나오는 중이면 끊고 넘어가지 않는다.
-    const wait = Math.max(byText, voice.remaining() + 600);
+    const wait = byText;
     autoTimer = window.setTimeout(() => {
       state.awaiting = 'none';
       advanceStory();
