@@ -618,6 +618,17 @@ input:focus-visible {
  */
 
 /* 감정에 따른 한 번짜리 반응. 표정이 바뀌는 순간에만 붙였다 뗀다. */
+/*
+ * 눈 깜박임 오버레이. 인물 위에 눈 부분만 겹친다.
+ * 위치와 크기는 js 가 원본 좌표에서 환산해 넣는다.
+ */
+.character-blink {
+  position: absolute;
+  pointer-events: none;
+  z-index: 1;
+  image-rendering: auto;
+}
+
 .character.reacts-back { transform: translateY(3px) scale(.995); }
 .character.reacts-forward { transform: translateY(-6px) scale(1.006); }
 

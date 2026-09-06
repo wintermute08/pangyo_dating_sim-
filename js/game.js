@@ -29,6 +29,7 @@
   const PRELOAD_ASSETS = [
     ...Object.values(ASSETS),
     ...Object.values(LOOKS).map((look) => look.src),
+    ...Object.values(window.BLINK || {}).flatMap((spec) => spec.frames),
     'assets/title-logo-v2.png'
   ];
 
@@ -74,6 +75,7 @@
     bgB: $('#stage-bg-b'),
     characterGhost: $('#character-ghost'),
     character: $('#character'),
+    characterStage: $('#character-stage'),
     cgLayer: $('#cg-layer'),
     cgImage: $('#cg-image'),
     sceneNumber: $('#scene-number'),
@@ -418,6 +420,108 @@
     }
   };
 
+  /*
+   * 눈 깜박임.
+   *
+   * 전신 스프라이트에서 입은 화면상 8x1px 이라 립싱크가 말하는 것보다
+   * 깜박이는 얼룩으로 보이지만, 눈은 25x18px 이라 충분히 읽힌다.
+   *
+   * 전신 변형을 저장하면 스탠딩 7종 23.6MB 에 47MB 가 더 붙어서, 눈
+   * 부분만 잘라낸 작은 PNG 를 인물 위에 겹친다. 좌표는 원본 이미지
+   * 좌표계라서 object-fit: contain 이 실제로 그리는 사각형을 계산해
+   * 환산해야 한다.
+   */
+  const blink = {
+    el: null,
+    timer: 0,
+    token: 0,
+    look: null,
+
+    ensure() {
+      if (!this.el) {
+        this.el = document.createElement('img');
+        this.el.className = 'character-blink';
+        this.el.alt = '';
+        this.el.setAttribute('aria-hidden', 'true');
+        this.el.hidden = true;
+        dom.characterStage.append(this.el);
+      }
+      return this.el;
+    },
+
+    place(look) {
+      const spec = window.BLINK && window.BLINK[look];
+      const img = dom.character;
+      if (!spec || img.hidden || !img.naturalWidth) return false;
+      const box = img.getBoundingClientRect();
+      const stage = dom.characterStage.getBoundingClientRect();
+      // object-fit: contain + object-position: bottom center
+      const scale = Math.min(box.width / img.naturalWidth, box.height / img.naturalHeight);
+      const drawnW = img.naturalWidth * scale;
+      const drawnH = img.naturalHeight * scale;
+      const originX = box.left - stage.left + (box.width - drawnW) / 2;
+      const originY = box.top - stage.top + (box.height - drawnH);
+      const el = this.ensure();
+      el.style.left = `${originX + spec.x * scale}px`;
+      el.style.top = `${originY + spec.y * scale}px`;
+      el.style.width = `${spec.w * scale}px`;
+      el.style.height = `${spec.h * scale}px`;
+      return true;
+    },
+
+    stop() {
+      window.clearTimeout(this.timer);
+      this.timer = 0;
+      this.token += 1;
+      if (this.el) this.el.hidden = true;
+    },
+
+    /*
+     * 컷이 바뀌면 다시 건다.
+     *
+     * 같은 컷으로 다시 불렸는데 타이머를 리셋하면 깜박임이 영영 안 온다.
+     * setCharacter 는 히로인 대사마다 불리고 대사는 1~2초에 한 번씩
+     * 넘어가는데, 깜박임 간격은 그보다 길기 때문이다.
+     */
+    attach(look) {
+      if (look === this.look && this.timer) return;
+      this.stop();
+      this.look = look;
+      if (config.reducedMotion || !(window.BLINK && window.BLINK[look])) return;
+      this.arm(this.token, 900);
+    },
+
+    arm(token, min = 2400) {
+      // 사람은 2~6초에 한 번 깜박인다. 간격이 일정하면 기계처럼 보인다.
+      this.timer = window.setTimeout(() => this.play(token), min + Math.random() * 3600);
+    },
+
+    play(token) {
+      if (token !== this.token || config.reducedMotion) return;
+      const look = this.look;
+      if (!this.place(look)) { this.arm(token); return; }
+      const spec = window.BLINK[look];
+      const el = this.ensure();
+      // 내려갈 때가 올라올 때보다 빠르다.
+      const steps = [[0, 55], [1, 70], [0, 65]];
+      let i = 0;
+      const next = () => {
+        if (token !== this.token) return;
+        if (i >= steps.length) {
+          el.hidden = true;
+          this.arm(token);
+          return;
+        }
+        const [frame, hold] = steps[i];
+        i += 1;
+        el.src = spec.frames[frame];
+        el.hidden = false;
+        this.timer = window.setTimeout(next, hold);
+      };
+      next();
+    }
+  };
+
   function freshState(playerName) {
     return {
       version: 3,
@@ -530,6 +634,7 @@
     window.clearTimeout(reactTimer);
     reactTimer = 0;
     voice.stop();
+    blink.stop();
     dom.character.classList.remove('reacts-back', 'reacts-forward');
     dom.character.style.transition = '';
     dom.character.style.opacity = '';
@@ -906,6 +1011,7 @@
       dom.character.style.transition = '';
       dom.character.style.opacity = '';
       dom.character.style.transform = '';
+      blink.stop();
       return;
     }
 
@@ -972,6 +1078,7 @@
       dom.characterGhost.style.opacity = '';
       dom.character.style.transition = '';
       dom.character.style.opacity = '';
+      blink.attach(nextLook);
     }
 
     /*
@@ -997,6 +1104,7 @@
         dom.character.style.opacity = '';
         characterTimer = 0;
         playReaction(nextLook);
+        blink.attach(nextLook);
       }, 480);
     } else if (!wasVisible && !config.reducedMotion) {
       /*
@@ -1022,6 +1130,7 @@
       characterTimer = window.setTimeout(() => {
         dom.character.style.opacity = '';
         characterTimer = 0;
+        blink.attach(nextLook);
       }, 460);
     }
   }
