@@ -45,6 +45,10 @@
     unlocks: 'pangyo-vn:unlocks:v3'
   };
 
+  // 배경 크로스페이드 길이. 진행 대기도 같은 값을 쓴다.
+  const BG_FADE = 700;
+  const SCENE_FADE = 900;
+
   const DEFAULT_CONFIG = {
     textSpeed: 26,
     autoDelay: 2600,
@@ -549,9 +553,16 @@
     dom.sceneNumber.textContent = scene.number || String(index + 1).padStart(2, '0');
     dom.sceneChapter.textContent = scene.chapter || '';
     dom.sceneTitle.textContent = scene.title;
-    setBackground(scene.bg, immediate);
+    setBackground(scene.bg, immediate, SCENE_FADE);
     setCg(null, immediate);
     setCharacter(false, state.character.look || 'calm');
+    if (!immediate) {
+      // 장면이 바뀌는 동안에는 이전 대사를 남겨두지 않는다.
+      dom.dialoguePanel.hidden = true;
+      dom.dialogueText.textContent = '';
+      dom.dialogueGhost.textContent = '';
+      dom.speaker.hidden = true;
+    }
     soundscape.playBgm(scene.bgm || 'day');
     updateProgress();
   }
@@ -574,7 +585,12 @@
       scene = window.STORY.scenes[state.sceneIndex];
       const line = scene.lines[state.lineIndex];
       state.lineIndex += 1;
-      return line;
+      /*
+       * 배경이 다 넘어간 뒤에 첫 줄을 낸다. 곧바로 내면 인물이 사라진
+       * 화면에 새 대사만 튀어나와서 장면이 끊겨 보인다.
+       */
+      state.queue.unshift(line);
+      return { t: 'wait', ms: SCENE_FADE + 120 };
     }
     return { t: 'end' };
   }
@@ -602,10 +618,13 @@
       case 'choice':
         showChoices(line);
         break;
-      case 'bg':
-        setBackground(line.to);
-        continueAfter(Math.min(line.fade || 450, 700));
+      case 'bg': {
+        const fade = Math.min(line.fade || BG_FADE, 1200);
+        setBackground(line.to, false, fade);
+        // 배경이 다 넘어간 뒤에 다음 대사가 시작하도록 같은 값을 쓴다.
+        continueAfter(fade + 60);
         break;
+      }
       case 'cg':
         if (line.hide) setCg(null);
         else setCg(line.show);
@@ -829,11 +848,22 @@
     advanceStory();
   }
 
-  function setBackground(key, immediate = false) {
+  /*
+   * 배경 크로스페이드.
+   *
+   * CSS 는 opacity 1s 로 고정돼 있었는데 진행 대기는 최대 700ms 였다.
+   * 시나리오가 fade: 700 이라고 적어도 실제로는 1000ms 가 걸려서, 배경이
+   * 아직 바뀌는 중에 다음 대사가 타이핑되기 시작했다. 길이를 인라인으로
+   * 지정해 대기 시간과 맞춘다.
+   */
+  function setBackground(key, immediate = false, duration = BG_FADE) {
     if (!ASSETS[key]) return;
     state.bg = key;
     const visible = activeBg === 'a' ? dom.bgA : dom.bgB;
     const next = activeBg === 'a' ? dom.bgB : dom.bgA;
+    [visible, next].forEach((el) => {
+      el.style.transitionDuration = immediate ? '0s' : `.8s, ${duration}ms`;
+    });
     if (immediate) {
       visible.src = ASSETS[key];
       next.src = ASSETS[key];
