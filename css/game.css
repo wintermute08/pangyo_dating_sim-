@@ -618,8 +618,6 @@ input:focus-visible {
  */
 
 /* 감정에 따른 한 번짜리 반응. 표정이 바뀌는 순간에만 붙였다 뗀다. */
-.character.reacts-back { transform: translateY(3px) scale(.995); }
-.character.reacts-forward { transform: translateY(-6px) scale(1.006); }
 
 /*
  * 컷 교체는 animation 이 아니라 transition 으로 한다.

@@ -139,7 +139,6 @@
   let typeTimer = 0;
   let voiceLine = '';
   let lineGhostTimer = 0;
-  let reactTimer = 0;
   let transitionTimer = 0;
   let autoTimer = 0;
   let toastTimer = 0;
@@ -531,10 +530,7 @@
     transitionTimer = 0;
     autoTimer = 0;
     characterTimer = 0;
-    window.clearTimeout(reactTimer);
-    reactTimer = 0;
     voice.stop();
-    dom.character.classList.remove('reacts-back', 'reacts-forward');
     dom.character.style.transition = '';
     dom.character.style.opacity = '';
     dom.character.style.transform = '';
@@ -711,8 +707,9 @@
      * 넘게 잡혔다. 개별 이동은 최대 2.5px 로 작지만 끊이지 않아서
      * 시야 가장자리에서 계속 흔들리는 것으로 읽힌다.
      *
-     * 감정 리액션(playReaction)만 남긴다. 그건 컷이 바뀌는 순간에만
-     * 한 번 일어나고 크로스페이드에 가려진다.
+     * 감정 리액션도 뺐다. 크로스페이드에 가려질 줄 알았는데, 페이드가
+     * 끝난 뒤 480ms 타이머에서 실행돼서 전환 직후에 그대로 보였다.
+     * "전환하고 나서 위아래로 움직인다"의 정체가 이것이었다.
      */
     const heroineSpeaking = line.t === 'say' && line.who !== 'mc';
     // 히로인이 말할 때만 의성음을 낸다. 독백과 주인공 대사는 조용히.
@@ -878,30 +875,6 @@
     activeBg = activeBg === 'a' ? 'b' : 'a';
   }
 
-  /*
-   * 표정이 바뀔 때 한 번만 주는 반응. 감정 방향만 아주 얕게 표현한다.
-   * 여기 없는 표정은 반응하지 않는다. 매 줄 움직이면 산만해진다.
-   */
-  const LOOK_REACTIONS = {
-    shy: 'reacts-back',
-    blush: 'reacts-back',
-    smile: 'reacts-forward',
-    hoodie_smile: 'reacts-forward'
-  };
-
-  function playReaction(look) {
-    const cls = LOOK_REACTIONS[look];
-    window.clearTimeout(reactTimer);
-    dom.character.classList.remove('reacts-back', 'reacts-forward');
-    if (!cls || config.reducedMotion) return;
-    // 인라인 transform 이 남아 있으면 클래스가 묻힌다. 등장 직후가 그렇다.
-    if (dom.character.style.transform) return;
-    dom.character.classList.add(cls);
-    reactTimer = window.setTimeout(() => {
-      dom.character.classList.remove('reacts-back', 'reacts-forward');
-      reactTimer = 0;
-    }, 320);
-  }
 
   function setCharacter(visible, look = 'calm', fadeOut = 0) {
     const selected = LOOKS[look] || LOOKS.calm;
@@ -1047,7 +1020,6 @@
         dom.characterGhost.style.opacity = '';
         dom.character.style.opacity = '';
         characterTimer = 0;
-        playReaction(nextLook);
       }, 480);
     } else if (!wasVisible && !config.reducedMotion) {
       /*
