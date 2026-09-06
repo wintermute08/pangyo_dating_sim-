@@ -530,7 +530,7 @@
     window.clearTimeout(reactTimer);
     reactTimer = 0;
     voice.stop();
-    dom.character.classList.remove('reacts-back', 'reacts-forward', 'is-speaking');
+    dom.character.classList.remove('reacts-back', 'reacts-forward');
     dom.character.style.transition = '';
     dom.character.style.opacity = '';
     dom.character.style.transform = '';
@@ -684,9 +684,18 @@
       dom.dialogueGhost.textContent = '';
     }
 
-    // 히로인이 말하는 동안만 살짝 앞으로 나온다.
+    /*
+     * 인물을 상시로 움직이지 않는다.
+     *
+     * 호흡(4.6초 주기 2px)과 말하기 기울임(대사마다 3px, 0.5초 트랜지션)을
+     * 둘 다 돌렸더니, 가만히 있어야 할 상태에서 프레임 간 이동이 70건
+     * 넘게 잡혔다. 개별 이동은 최대 2.5px 로 작지만 끊이지 않아서
+     * 시야 가장자리에서 계속 흔들리는 것으로 읽힌다.
+     *
+     * 감정 리액션(playReaction)만 남긴다. 그건 컷이 바뀌는 순간에만
+     * 한 번 일어나고 크로스페이드에 가려진다.
+     */
     const heroineSpeaking = line.t === 'say' && line.who !== 'mc';
-    dom.character.classList.toggle('is-speaking', heroineSpeaking && !config.reducedMotion);
     // 히로인이 말할 때만 의성음을 낸다. 독백과 주인공 대사는 조용히.
     voiceLine = heroineSpeaking ? text : '';
     voice.begin(voiceLine);
@@ -904,7 +913,6 @@
     const wasFading = characterTimer !== 0;
     window.clearTimeout(characterTimer);
     characterTimer = 0;
-    dom.character.hidden = false;
 
     const crossfade = changed && wasVisible && !config.reducedMotion;
 
@@ -966,10 +974,16 @@
       dom.character.style.opacity = '';
     }
 
+    /*
+     * 크롭(data-look)은 height 와 bottom 을 바꾸고 이 둘에는 트랜지션이 없다.
+     * 보이는 상태에서 바꾸면 그대로 튄다(실측 91.65px). 기하를 먼저
+     * 확정하고 그 다음에 화면에 올린다.
+     */
     dom.character.src = selected.src;
     dom.character.dataset.look = selected.crop;
     dom.character.dataset.emotion = nextLook;
     dom.character.alt = `${window.STORY.heroineName} · ${look}`;
+    dom.character.hidden = false;
 
     if (crossfade) {
       void dom.stage.offsetWidth;   // 위에서 준 시작값을 확정시킨다
@@ -990,17 +1004,25 @@
        * animation 은 도중에 클래스를 떼면 값이 기본값으로 튄다.
        * 등장이 끝나기 전에 다음 대사로 넘어가면 그 튐이 보인다.
        */
+      /*
+       * 등장은 위치를 옮기지 않고 투명도만 올린다.
+       *
+       * 예전에는 translateY(24px) 에서 미끄러져 들어왔는데, transform
+       * 트랜지션이 0.5초인 반면 opacity 는 0.38초라 이미 불투명해진
+       * 뒤에도 120ms 동안 계속 움직였다. 장면이 바뀔 때마다 인물이
+       * 미세하게 흔들리는 원인이었다. 장면 전환에는 배경 크로스페이드가
+       * 함께 돌기 때문에 위치 이동이 없어도 등장이 밋밋하지 않다.
+       */
       dom.character.style.transition = 'none';
       dom.character.style.opacity = '0';
-      dom.character.style.transform = 'translateY(24px) scale(.985)';
+      dom.character.style.transform = '';
       void dom.stage.offsetWidth;
       dom.character.style.transition = '';
       dom.character.style.opacity = '1';
-      dom.character.style.transform = '';
       characterTimer = window.setTimeout(() => {
         dom.character.style.opacity = '';
         characterTimer = 0;
-      }, 560);
+      }, 460);
     }
   }
 

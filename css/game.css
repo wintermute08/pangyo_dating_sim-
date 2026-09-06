@@ -544,7 +544,6 @@ input:focus-visible {
   transform-origin: 50% 100%;
   /* 래스터 결과를 재사용하도록 레이어로 승격시킨다 */
   will-change: transform;
-  animation: character-breathe 4.6s ease-in-out infinite;
 }
 
 /*
@@ -554,11 +553,6 @@ input:focus-visible {
  * 래스터화된다. 실측으로 50ms 넘게 밀린 프레임이 34개에서 218개로
  * 늘었다. 이동만 하면 이미 그려 둔 레이어를 옮기기만 하므로 값이 싸다.
  */
-@keyframes character-breathe {
-  0%, 100% { transform: translateY(0); }
-  50%      { transform: translateY(-3px); }
-}
-
 .character {
   position: absolute;
   left: 76%;
@@ -622,7 +616,6 @@ input:focus-visible {
  * transform 은 등장 연출이 인라인으로 쓰는데, 등장이 끝나면 인라인을
  * 비우므로 그때부터 이 클래스가 적용된다.
  */
-.character.is-speaking { transform: translateY(-3px); }
 
 /* 감정에 따른 한 번짜리 반응. 표정이 바뀌는 순간에만 붙였다 뗀다. */
 .character.reacts-back { transform: translateY(3px) scale(.995); }
@@ -1699,7 +1692,6 @@ input[type="range"]::-webkit-slider-thumb {
 .reduce-motion .petals,
 .reduce-motion .light-motes { display: none; }
 
-.reduce-motion .character-stage { animation: none; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
