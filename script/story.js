@@ -1,12 +1,13 @@
 /*
  * 판교고 미연시 — 본편 시나리오 데이터
  *
- * 새 UI 목업의 "고3의 봄 / 판교하" 설정을 중심으로, 기존 기획서의
+ * 상대역 이름과 스탠딩은 js/game.js 의 PARTNERS 가 정한다. 여기서는
+ * {her}/{her_s:조사}/{sis} 토큰으로만 쓴다.
+ * 새 UI 목업의 "고3의 봄" 설정을 중심으로, 기존 기획서의
  * 6개 장면·키링 찾기·학교에 대한 질문만 가볍게 재구성했다.
  * 이 파일에는 표시 로직을 넣지 않는다.
  */
 window.STORY = {
-  heroineName: '판교하',
   unknownName: '???',
 
   scenes: [
@@ -246,7 +247,7 @@ window.STORY = {
         },
         { t: 'cg', hide: true, fade: 500 },
         { t: 'chara', show: true, look: 'calm' },
-        { t: 'say', who: 'unknown', look: 'calm', text: '키링은 언니가 입학식 날 준 거야. 여기서 좋은 기억 많이 만들라고.' },
+        { t: 'say', who: 'unknown', look: 'calm', text: '키링은 {sis}가 입학식 날 준 거야. 여기서 좋은 기억 많이 만들라고.' },
         { t: 'say', who: 'unknown', look: 'shy', text: '그래서 잃어버렸다는 말을 못 하겠더라.' },
         { t: 'say', who: 'mc', text: '그럼 오늘 안에 꼭 찾아야겠네.' },
         { t: 'say', who: 'unknown', look: 'smile', text: '응. 오늘을 좋은 기억으로 만들려면.' }
@@ -275,7 +276,7 @@ window.STORY = {
         { t: 'say', who: 'mc', text: '그런데 약속은?' },
         { t: 'say', who: 'unknown', look: 'calm', text: '약속?' },
         { t: 'say', who: 'mc', text: '이름 알려주기로 했잖아.' },
-        { t: 'say', who: 'heroine', look: 'smile', text: '판교하. 3학년 2반 판교하.' },
+        { t: 'say', who: 'heroine', look: 'smile', text: '{her}. 3학년 2반 {her}.' },
         { t: 'say', who: 'heroine', look: 'shy', text: '이제 복도에서 마주치면 모른 척하면 안 돼, {name_a}.' },
         { t: 'narr', text: '이름을 알고 나자, 오늘의 장면들이 조금 더 선명해졌다.' }
       ]
@@ -295,7 +296,7 @@ window.STORY = {
         { t: 'say', who: 'mc', text: '찾아서 다행이네.' },
         { t: 'say', who: 'heroine', look: 'calm', text: '키링도 그렇지만… 네가 같이 있어 줘서.' },
         { t: 'say', who: 'heroine', look: 'shy', text: '평범한 하루가 조금 특별해지는 데는, 열 걸음이면 충분한가 봐.' },
-        { t: 'narr', text: '교하는 키링을 가방에 단단히 매달고, 두 손으로 끈을 꼭 잡았다.' },
+        { t: 'narr', text: '{her_s:는} 키링을 가방에 단단히 매달고, 두 손으로 끈을 꼭 잡았다.' },
         { t: 'say', who: 'heroine', look: 'blush', text: '{name_a}. 내일도… 아침에 같이 걸을래?' },
         {
           t: 'choice',

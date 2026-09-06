@@ -13,22 +13,73 @@
     cg03_face_blush: 'assets/cg03_face_blush.png'
   };
 
-  const LOOKS = {
-    calm: { src: 'assets/ch_stand_calm.png', crop: 'full' },
-    serious: { src: 'assets/ch_full_calm.png', crop: 'full' },
-    smile: { src: 'assets/ch_waist_smile.png', crop: 'waist' },
-    shy: { src: 'assets/ch_waist_blush.png', crop: 'waist' },
-    blush: { src: 'assets/ch_bust_blush.png', crop: 'bust' },
-    // 체육시간(씬 04) 전용. 교복 스탠딩을 기준 이미지로 의상만 바꿔 만든 컷이라
-    // 얼굴·머리·비율·포즈가 다른 컷과 같다. 미소 컷은 무표정 컷을 다시
-    // 기준 이미지로 삼아 표정만 바꿨고, 정렬 오차는 최대 18px 이다.
-    hoodie_calm: { src: 'assets/ch_stand_hoodie_calm.png', crop: 'full' },
-    hoodie_smile: { src: 'assets/ch_stand_hoodie_smile.png', crop: 'full' }
+  /*
+   * 루트. 플레이어의 성별이 상대역을 정한다.
+   *
+   * 대사는 반말 대화라 대부분 중립이라서, 실제로 갈리는 것은 상대역의
+   * 이름과 스탠딩, 그리고 손위 형제를 부르는 말 하나뿐이다.
+   * ({sis} - 같은 누나를 여자는 언니, 남자는 누나라고 부른다)
+   */
+  const PARTNERS = {
+    male: {                       // 플레이어가 남자 -> 상대는 판교하
+      name: '판교하',
+      short: '교하',
+      sis: '언니',
+      looks: {
+        calm: { src: 'assets/ch_stand_calm.png', crop: 'full' },
+        serious: { src: 'assets/ch_full_calm.png', crop: 'full' },
+        smile: { src: 'assets/ch_waist_smile.png', crop: 'waist' },
+        shy: { src: 'assets/ch_waist_blush.png', crop: 'waist' },
+        blush: { src: 'assets/ch_bust_blush.png', crop: 'bust' },
+        // 체육시간(씬 05) 전용. 교복 스탠딩을 기준 이미지로 의상만 바꿔
+        // 만든 컷이라 얼굴·머리·비율·포즈가 다른 컷과 같다.
+        hoodie_calm: { src: 'assets/ch_stand_hoodie_calm.png', crop: 'full' },
+        hoodie_smile: { src: 'assets/ch_stand_hoodie_smile.png', crop: 'full' }
+      }
+    },
+    female: {                     // 플레이어가 여자 -> 상대는 판교준
+      name: '판교준',
+      short: '교준',
+      sis: '누나',
+      looks: {
+        calm: { src: 'assets/chm_calm.png', crop: 'full' },
+        serious: { src: 'assets/chm_serious.png', crop: 'full' },
+        smile: { src: 'assets/chm_smile.png', crop: 'waist' },
+        shy: { src: 'assets/chm_shy.png', crop: 'waist' },
+        blush: { src: 'assets/chm_blush.png', crop: 'bust' },
+        hoodie_calm: { src: 'assets/chm_hoodie_calm.png', crop: 'full' },
+        hoodie_smile: { src: 'assets/chm_hoodie_smile.png', crop: 'full' }
+      }
+    }
   };
 
+  const DEFAULT_GENDER = 'male';
+  let partner = PARTNERS[DEFAULT_GENDER];
+  let LOOKS = partner.looks;
+
+  /** 성별이 정해지면 상대역과 스탠딩 묶음을 갈아 끼운다. */
+  function applyRoute(gender) {
+    partner = PARTNERS[gender] || PARTNERS[DEFAULT_GENDER];
+    LOOKS = partner.looks;
+    dom.character.alt = partner.name;
+    /*
+     * 두 img 의 초기 src 는 마크업에 박혀 있어 반대 루트의 인물을 가리킨다.
+     * 잔상(ghost)은 크로스페이드에 그대로 쓰이므로, 여기서 함께 바꾸지
+     * 않으면 컷이 바뀔 때 다른 인물이 한 번 스쳐 보인다.
+     */
+    const first = LOOKS.calm.src;
+    dom.character.src = first;
+    dom.characterGhost.src = first;
+    dom.characterGhost.dataset.look = LOOKS.calm.crop;
+  }
+
+  /*
+   * 처음에는 배경만 받는다. 스탠딩은 루트당 22~28MB 라 양쪽을 다 받으면
+   * 50MB 가 되고, 어차피 한쪽만 쓴다. 성별을 고른 뒤 이름을 입력하는
+   * 동안 뒤에서 받아 둔다.
+   */
   const PRELOAD_ASSETS = [
     ...Object.values(ASSETS),
-    ...Object.values(LOOKS).map((look) => look.src),
     'assets/title-logo-v2.png'
   ];
 
@@ -39,10 +90,10 @@
    * v3: 체육시간 씬(04)을 추가하면서 뒤 씬 인덱스가 하나씩 밀렸다.
    */
   const STORAGE = {
-    config: 'pangyo-vn:config:v3',
-    autosave: 'pangyo-vn:autosave:v3',
-    slot: (number) => `pangyo-vn:slot:${number}:v3`,
-    unlocks: 'pangyo-vn:unlocks:v3'
+    config: 'pangyo-vn:config:v4',
+    autosave: 'pangyo-vn:autosave:v4',
+    slot: (number) => `pangyo-vn:slot:${number}:v4`,
+    unlocks: 'pangyo-vn:unlocks:v4'
   };
 
   /*
@@ -148,6 +199,22 @@
   let activeBg = 'a';
   let typeTimer = 0;
   let voiceLine = '';
+  let pendingGender = DEFAULT_GENDER;
+  const preloadedRoutes = new Set();
+
+  /** 고른 루트의 스탠딩만 뒤에서 받아 둔다. 양쪽을 다 받으면 50MB 다. */
+  function preloadLooks(gender) {
+    if (preloadedRoutes.has(gender)) return;
+    preloadedRoutes.add(gender);
+    const set = PARTNERS[gender] || PARTNERS[DEFAULT_GENDER];
+    Object.values(set.looks).forEach((look) => {
+      const image = new Image();
+      image.addEventListener('load', () => {
+        if (typeof image.decode === 'function') image.decode().catch(() => {});
+      }, { once: true });
+      image.src = look.src;
+    });
+  }
   let lineGhostTimer = 0;
   let transitionTimer = 0;
   let autoTimer = 0;
@@ -431,10 +498,11 @@
     }
   };
 
-  function freshState(playerName) {
+  function freshState(playerName, gender = DEFAULT_GENDER) {
     return {
-      version: 3,
+      version: 4,
       playerName: playerName || NAME_FALLBACK,
+      gender: PARTNERS[gender] ? gender : DEFAULT_GENDER,
       sceneIndex: 0,
       lineIndex: 0,
       queue: [],
@@ -515,9 +583,10 @@
     if (message) showToast(message);
   }
 
-  function newGame(name) {
+  function newGame(name, gender = pendingGender) {
     cancelAllTimers();
-    state = freshState((name || '').trim().slice(0, 8) || NAME_FALLBACK);
+    applyRoute(gender);
+    state = freshState((name || '').trim().slice(0, 8) || NAME_FALLBACK, gender);
     activeBg = 'a';
     dom.bgA.src = ASSETS.bg01_gate_morning;
     dom.bgB.src = ASSETS.bg01_gate_morning;
@@ -800,7 +869,7 @@
   function resolveSpeaker(line) {
     if (line.t !== 'say') return '';
     if (line.who === 'mc') return state.playerName;
-    if (line.who === 'heroine') return window.STORY.heroineName;
+    if (line.who === 'heroine') return partner.name;
     return window.STORY.unknownName;
   }
 
@@ -808,7 +877,34 @@
     const name = state.playerName || NAME_FALLBACK;
     return String(text)
       .replaceAll('{name_a}', vocative(name))
-      .replaceAll('{name}', name);
+      .replaceAll('{name}', name)
+      .replaceAll('{her}', partner.name)     // 판교하 / 판교준
+      .replaceAll('{sis}', partner.sis)      // 언니 / 누나
+      // {her_s:는} 처럼 조사를 붙여 쓰면 받침에 맞춰 고른다.
+      // 교하'는' 인데 교준'은' 이라, 이름만 바꾸면 조사가 틀린다.
+      .replace(/\{her_s(?::(\S+?))?\}/g, (_, particle) =>
+        (particle ? withParticle(partner.short, particle) : partner.short));
+  }
+
+  // [받침 없을 때, 받침 있을 때]
+  const PARTICLES = {
+    '는': ['는', '은'], '은': ['는', '은'],
+    '를': ['를', '을'], '을': ['를', '을'],
+    '가': ['가', '이'], '이': ['가', '이'],
+    '와': ['와', '과'], '과': ['와', '과'],
+    '로': ['로', '으로'], '으로': ['로', '으로'],
+    '야': ['야', '아'], '아': ['야', '아']
+  };
+
+  function withParticle(word, particle) {
+    const pair = PARTICLES[particle];
+    if (!pair) return word + particle;
+    const last = word.codePointAt(word.length - 1);
+    if (last < 0xac00 || last > 0xd7a3) return word + pair[0];
+    const jong = (last - 0xac00) % 28;
+    // 로/으로 는 ㄹ 받침(8)일 때도 '로' 를 쓴다
+    const useSecond = jong !== 0 && !(pair[1] === '으로' && jong === 8);
+    return word + pair[useSecond ? 1 : 0];
   }
 
   function vocative(name) {
@@ -1016,7 +1112,7 @@
     dom.character.src = selected.src;
     dom.character.dataset.look = selected.crop;
     dom.character.dataset.emotion = nextLook;
-    dom.character.alt = `${window.STORY.heroineName} · ${look}`;
+    dom.character.alt = `${partner.name} · ${look}`;
     dom.character.hidden = false;
 
     if (crossfade) {
@@ -1134,10 +1230,10 @@
     dom.endingBg.src = ASSETS[ending.cg];
     dom.endingCode.textContent = ending.code;
     dom.endingTitle.textContent = ending.title;
-    dom.endingSubtitle.textContent = ending.subtitle;
+    dom.endingSubtitle.textContent = formatText(ending.subtitle);
     dom.endingEpilogue.replaceChildren(...ending.epilogue.map((text) => {
       const paragraph = document.createElement('p');
-      paragraph.textContent = text;
+      paragraph.textContent = formatText(text);
       return paragraph;
     }));
     const unlockedEndings = getUnlocks().filter((item) => item.startsWith('ending:')).length;
@@ -1252,7 +1348,9 @@
 
   function restoreState(saved) {
     cancelAllTimers();
-    const base = freshState(saved.playerName || NAME_FALLBACK);
+    applyRoute(saved.gender || DEFAULT_GENDER);
+    pendingGender = saved.gender || DEFAULT_GENDER;
+    const base = freshState(saved.playerName || NAME_FALLBACK, saved.gender);
     state = {
       ...base,
       ...saved,
@@ -1451,8 +1549,20 @@
     dom.start.addEventListener('click', () => {
       soundscape.ensure();
       soundscape.play('ui');
-      dom.nameInput.value = '';
-      openModal('name');
+      pendingGender = DEFAULT_GENDER;
+      openModal('gender');
+    });
+
+    $$('[data-gender]').forEach((button) => {
+      button.addEventListener('click', () => {
+        pendingGender = button.dataset.gender;
+        applyRoute(pendingGender);
+        // 스탠딩은 여기서부터 받는다. 이름을 적는 동안 끝난다.
+        preloadLooks(pendingGender);
+        soundscape.play('choice');
+        dom.nameInput.value = '';
+        openModal('name');
+      });
     });
 
     dom.continue.addEventListener('click', () => {
@@ -1470,7 +1580,7 @@
       if (!name) return;   // required 가 막지만 스크립트 제출도 대비한다
       closeModal();
       soundscape.play('choice');
-      newGame(name);
+      newGame(name, pendingGender);
     });
 
     dom.dialogueHitbox.addEventListener('click', skipOrAdvance);
@@ -1483,7 +1593,7 @@
     dom.fullscreen.addEventListener('click', toggleFullscreen);
     dom.titleButton.addEventListener('click', () => showTitle('진행 상황을 자동 저장했습니다.'));
     dom.endingTitleButton.addEventListener('click', () => showTitle());
-    dom.replay.addEventListener('click', () => newGame(state.playerName));
+    dom.replay.addEventListener('click', () => newGame(state.playerName, state.gender));
 
     $$('[data-open-modal]').forEach((button) => {
       button.addEventListener('click', () => {

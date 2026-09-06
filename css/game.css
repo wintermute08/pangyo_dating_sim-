@@ -1718,3 +1718,19 @@ input[type="range"]::-webkit-slider-thumb {
   from { transform: scale(1.02) translate3d(-.35%, 0, 0); }
   to { transform: scale(1.045) translate3d(.45%, -.25%, 0); }
 }
+
+/* 성별 선택. 버튼 두 개를 나란히 두되 좁은 화면에서는 쌓는다. */
+.gender-choices {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.gender-choices .primary-action {
+  flex: 1 1 0;
+  justify-content: center;
+}
+
+@media (max-width: 360px) {
+  .gender-choices { flex-direction: column; }
+}
