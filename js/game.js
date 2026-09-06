@@ -555,7 +555,7 @@
     dom.sceneTitle.textContent = scene.title;
     setBackground(scene.bg, immediate, SCENE_FADE);
     setCg(null, immediate);
-    setCharacter(false, state.character.look || 'calm');
+    setCharacter(false, state.character.look || 'calm', immediate ? 0 : SCENE_FADE);
     if (!immediate) {
       // 장면이 바뀌는 동안에는 이전 대사를 남겨두지 않는다.
       dom.dialoguePanel.hidden = true;
@@ -903,7 +903,7 @@
     }, 320);
   }
 
-  function setCharacter(visible, look = 'calm') {
+  function setCharacter(visible, look = 'calm', fadeOut = 0) {
     const selected = LOOKS[look] || LOOKS.calm;
     const nextLook = LOOKS[look] ? look : 'calm';
     const changed = dom.character.getAttribute('src') !== selected.src;
@@ -921,6 +921,27 @@
       dom.characterGhost.hidden = true;
       dom.characterGhost.style.transition = '';
       dom.characterGhost.style.opacity = '';
+
+      /*
+       * 장면이 바뀔 때는 배경과 함께 서서히 사라진다.
+       *
+       * 즉시 감추면 인물이 툭 없어졌다가 1~2초 뒤 다시 나타나서 깜박이는
+       * 것처럼 보인다. 실측으로 전환마다 2.4초·1.0초씩 완전히 비어 있었다.
+       * 배경 크로스페이드와 같은 길이로 함께 흐려지면 화면 전체가 한 번에
+       * 넘어가는 것으로 읽힌다.
+       */
+      if (fadeOut > 0 && !config.reducedMotion && !dom.character.hidden) {
+        dom.character.style.transition = `opacity ${fadeOut}ms ease`;
+        dom.character.style.opacity = '0';
+        characterTimer = window.setTimeout(() => {
+          dom.character.hidden = true;
+          dom.character.style.transition = '';
+          dom.character.style.opacity = '';
+          dom.character.style.transform = '';
+          characterTimer = 0;
+        }, fadeOut);
+        return;
+      }
 
       /*
        * 장면이 바뀔 때 enterScene 이 여기를 부른다. 그냥 감춘다.
