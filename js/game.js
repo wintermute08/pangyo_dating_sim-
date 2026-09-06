@@ -45,6 +45,16 @@
     unlocks: 'pangyo-vn:unlocks:v3'
   };
 
+  /*
+   * 이름을 게임이 먼저 제안하지 않는다.
+   *
+   * 입력창에 특정 이름을 채워 두면 그대로 확인만 누르게 되고, 그 이름이
+   * 실제 같은 학교 학생과 겹칠 수 있다. 입력창은 비워 두고 required 로
+   * 반드시 직접 적게 한다. 아래 값은 저장 데이터에 이름이 없는 경우에만
+   * 쓰이는 대비책이라, 사람 이름이 아니라 자리표시자로 둔다.
+   */
+  const NAME_FALLBACK = '주인공';
+
   // 배경 크로스페이드 길이. 진행 대기도 같은 값을 쓴다.
   const BG_FADE = 700;
   const SCENE_FADE = 900;
@@ -134,7 +144,7 @@
   };
 
   let config = { ...DEFAULT_CONFIG, ...readJSON(STORAGE.config, {}) };
-  let state = freshState('도윤');
+  let state = freshState(NAME_FALLBACK);
   let activeBg = 'a';
   let typeTimer = 0;
   let voiceLine = '';
@@ -424,7 +434,7 @@
   function freshState(playerName) {
     return {
       version: 3,
-      playerName: playerName || '도윤',
+      playerName: playerName || NAME_FALLBACK,
       sceneIndex: 0,
       lineIndex: 0,
       queue: [],
@@ -507,7 +517,7 @@
 
   function newGame(name) {
     cancelAllTimers();
-    state = freshState((name || '도윤').trim().slice(0, 8) || '도윤');
+    state = freshState((name || '').trim().slice(0, 8) || NAME_FALLBACK);
     activeBg = 'a';
     dom.bgA.src = ASSETS.bg01_gate_morning;
     dom.bgB.src = ASSETS.bg01_gate_morning;
@@ -795,7 +805,7 @@
   }
 
   function formatText(text) {
-    const name = state.playerName || '도윤';
+    const name = state.playerName || NAME_FALLBACK;
     return String(text)
       .replaceAll('{name_a}', vocative(name))
       .replaceAll('{name}', name);
@@ -1229,7 +1239,7 @@
   }
 
   function formatSavedText(text, savedName) {
-    const name = savedName || '도윤';
+    const name = savedName || NAME_FALLBACK;
     return String(text).replaceAll('{name_a}', vocative(name)).replaceAll('{name}', name);
   }
 
@@ -1242,7 +1252,7 @@
 
   function restoreState(saved) {
     cancelAllTimers();
-    const base = freshState(saved.playerName || '도윤');
+    const base = freshState(saved.playerName || NAME_FALLBACK);
     state = {
       ...base,
       ...saved,
@@ -1441,7 +1451,7 @@
     dom.start.addEventListener('click', () => {
       soundscape.ensure();
       soundscape.play('ui');
-      dom.nameInput.value = '도윤';
+      dom.nameInput.value = '';
       openModal('name');
     });
 
@@ -1456,7 +1466,8 @@
 
     dom.nameForm.addEventListener('submit', (event) => {
       event.preventDefault();
-      const name = dom.nameInput.value.trim() || '도윤';
+      const name = dom.nameInput.value.trim();
+      if (!name) return;   // required 가 막지만 스크립트 제출도 대비한다
       closeModal();
       soundscape.play('choice');
       newGame(name);
