@@ -541,9 +541,45 @@ input:focus-visible {
   inset: 0;
   z-index: 3;
   pointer-events: none;
-  transform-origin: 50% 100%;
+  /*
+   * 인물의 가로 위치. 회전축과 .character 의 left 가 같은 값을 봐야
+   * 기울일 때 인물이 위아래로 들리지 않는다. 어긋나면 그 차이만큼
+   * 발끝이 원호를 그리며 올라온다.
+   */
+  --char-x: 76%;
+  transform-origin: var(--char-x) 100%;
   /* 래스터 결과를 재사용하도록 레이어로 승격시킨다 */
-  will-change: transform;
+  will-change: transform, rotate;
+
+  /*
+   * 서 있는 동안의 아이들 모션. 발끝을 축으로 몸 전체가 아주 조금 기운다.
+   *
+   * 발목·골반·가슴·목을 각각 다른 각도로 돌리는 관절 체인을 먼저 만들었다.
+   * 그런데 이 진폭에서는 통짜 회전 0.18도와 화면상 최대 0.44px 차이밖에
+   * 안 났다. 전체 이동량이 2.7px 이므로 그 16% 이고, 원본 픽셀 기준으로도
+   * 최대 차이가 255 중 12 라 눈에 보이지 않는다.
+   *
+   * 관절 체인은 구간마다 스프라이트 사본이 한 장씩 필요하다(구간별로
+   * 각도가 달라야 하므로). 사본마다 drop-shadow 를 다시 계산하고,
+   * 크로스페이드 중에는 잔상까지 있어 그 값이 두 배가 된다. 보이지 않는
+   * 차이에 낼 비용이 아니다. 통짜 회전은 늘어남도 0 이다.
+   *
+   * .character 가 아니라 여기(부모)에 건다. 인물과 잔상은 각각 다른
+   * 시점에 hidden 이 풀리므로 같은 애니메이션을 따로 걸면 위상이
+   * 어긋난다. 크로스페이드 중에 두 그림이 최대 0.36도 벌어져 겹치면
+   * 그대로 겹쳐 보인다. 부모를 돌리면 둘이 통째로 같이 기운다.
+   */
+  animation: character-sway 5.3s ease-in-out infinite;
+}
+
+/*
+ * transform 이 아니라 rotate 속성을 쓴다. transform 은 등장 연출이
+ * 인라인으로 잡았다 놨다 하는데, 같은 속성을 애니메이션이 함께 쓰면
+ * 인라인이 애니메이션을 덮어써서 기울기가 툭 끊긴다.
+ */
+@keyframes character-sway {
+  0%, 100% { rotate: .18deg; }
+  50% { rotate: -.18deg; }
 }
 
 /*
@@ -1518,6 +1554,7 @@ input[type="range"]::-webkit-slider-thumb {
 .reduce-motion .title-bg,
 .reduce-motion .ending-bg,
 .reduce-motion .stage-bg { transform: none; }
+.reduce-motion .character-stage,
 .reduce-motion .character,
 .reduce-motion .cg-layer img,
 .reduce-motion .title-copy,
@@ -1653,6 +1690,9 @@ input[type="range"]::-webkit-slider-thumb {
   .character,
   .character[data-look="waist"],
   .character[data-look="bust"] { left: 50%; }
+  /* 인물이 옮겨 갔으니 회전축도 따라간다. 안 옮기면 축이 26% 밖에
+     남아 그만큼 발끝이 위아래로 들린다. */
+  .character-stage { --char-x: 50%; }
 }
 
 /* 태블릿 세로.
