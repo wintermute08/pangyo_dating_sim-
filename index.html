@@ -97,22 +97,25 @@
 
         <section id="dialogue-panel" class="dialogue-panel" aria-live="polite">
           <button id="dialogue-hitbox" class="dialogue-hitbox" type="button" aria-label="대사 넘기기"></button>
-          <div class="dialogue-accent" aria-hidden="true"></div>
           <div id="speaker-name" class="speaker-name" hidden></div>
           <div class="dialogue-body">
             <p id="dialogue-ghost" class="dialogue-text dialogue-text--ghost" aria-hidden="true"></p>
             <p id="dialogue-text" class="dialogue-text"></p>
           </div>
           <span id="next-indicator" class="next-indicator" aria-hidden="true">◆</span>
-          <nav class="dialogue-tools" aria-label="게임 도구">
-            <button type="button" data-open-modal="save"><span>기록</span><small>SAVE</small></button>
-            <button type="button" data-open-modal="load"><span>불러오기</span><small>LOAD</small></button>
-            <button type="button" data-open-modal="log"><span>지난 대화</span><small>LOG</small></button>
-            <button id="auto-button" type="button"><span>자동</span><small>AUTO</small></button>
-            <button type="button" data-open-modal="config"><span>설정</span><small>CONFIG</small></button>
-            <button id="title-button" type="button"><span>처음으로</span><small>TITLE</small></button>
-          </nav>
         </section>
+
+        <div id="game-menu" class="game-menu">
+          <button id="game-menu-toggle" class="game-menu-toggle" type="button" aria-expanded="false" aria-controls="game-tools">메뉴 <span aria-hidden="true">≡</span></button>
+          <nav id="game-tools" class="dialogue-tools" aria-label="게임 도구">
+            <button type="button" data-open-modal="save">저장</button>
+            <button type="button" data-open-modal="load">불러오기</button>
+            <button type="button" data-open-modal="log">지난 대화</button>
+            <button id="auto-button" type="button" aria-pressed="false">자동</button>
+            <button type="button" data-open-modal="config">설정</button>
+            <button id="title-button" type="button">타이틀</button>
+          </nav>
+        </div>
 
         <div id="date-card" class="date-card" hidden>
           <p>SPRING · 2026</p><strong id="date-card-main">4월 15일, 월요일</strong><span id="date-card-sub">졸업까지 321일 · 맑음</span>

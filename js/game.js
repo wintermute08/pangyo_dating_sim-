@@ -4,14 +4,13 @@
   /*
    * 배경은 미리 흐리게 구운 파일을 쓴다(tools/soften_bg.py).
    *
-   * 인물과 배경이 똑같이 선명하면 같은 평면에 붙어 보인다. 배경을
-   * 아웃포커스로 날리면 인물이 앞으로 나오는데, CSS filter: blur() 를
+   * 창틀과 바닥 선이 남도록 약한 심도(기준 화면 약 1.5px)만 쓴다.
+   * CSS filter: blur() 를
    * 실행 중에 걸면 장면이 바뀔 때마다 화면 전체를 다시 그린다. 실측으로
    * 프레임 중앙값 35 -> 46ms, 50ms 초과 프레임 9~12% -> 38~42%.
    *
-   * 파일에 구워 두면 실행 비용이 0 이고, 흐린 그림은 고주파가 없어서
-   * 절반 크기 JPEG 로 저장해도 화면에서 구분이 안 된다(배경 영역 픽셀
-   * 차이 255 중 평균 0.91). 덤으로 41.4MB -> 460KB 가 된다.
+   * 파일에 구워 두면 실행 중 블러 연산이 필요 없다. 절반 크기 JPEG 로
+   * 제공해 원본 PNG 전체를 내려받는 비용도 줄인다.
    *
    * 선명한 원본 PNG 는 지우지 않는다. 타이틀 화면이 bg01 을 그대로
    * 쓰고(index.html), 흐림 정도를 바꾸려면 원본에서 다시 구워야 한다.
@@ -177,6 +176,8 @@
     sceneTitle: $('#scene-title'),
     sceneProgress: $('#scene-progress'),
     dialoguePanel: $('#dialogue-panel'),
+    gameMenu: $('#game-menu'),
+    gameMenuToggle: $('#game-menu-toggle'),
     dialogueHitbox: $('#dialogue-hitbox'),
     dialogueText: $('#dialogue-text'),
     dialogueGhost: $('#dialogue-ghost'),
@@ -596,6 +597,7 @@
   }
 
   function setScreen(id) {
+    setGameMenu(false);
     dom.screens.forEach((screen) => screen.classList.toggle('is-active', screen.id === id));
   }
 
@@ -604,6 +606,7 @@
     cancelAllTimers();
     autoMode = false;
     dom.auto.classList.remove('is-active');
+    dom.auto.setAttribute('aria-pressed', 'false');
     soundscape.playBgm('morning');
     setScreen('title-screen');
     updateContinueButton();
@@ -1109,9 +1112,21 @@
     return `${String(minutes).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
   }
 
+  function setGameMenu(open, restoreFocus = false) {
+    if (dom.gameMenu.classList.contains('is-open') === open) return;
+    const hadFocus = $('#game-tools').contains(document.activeElement);
+    dom.gameMenu.classList.toggle('is-open', open);
+    dom.gameMenuToggle.setAttribute('aria-expanded', String(open));
+    if (open) window.clearTimeout(autoTimer);
+    else {
+      if (restoreFocus || hadFocus) dom.gameMenuToggle.focus();
+      scheduleAuto();
+    }
+  }
+
   function scheduleAuto() {
     window.clearTimeout(autoTimer);
-    if (!autoMode || currentModal || state.awaiting !== 'text' || isTyping) return;
+    if (!autoMode || currentModal || dom.gameMenu.classList.contains('is-open') || state.awaiting !== 'text' || isTyping) return;
     const byText = config.autoDelay + Math.min(fullText.length * 24, 1800);
     const wait = byText;
     autoTimer = window.setTimeout(() => {
@@ -1123,12 +1138,14 @@
   function toggleAuto() {
     autoMode = !autoMode;
     dom.auto.classList.toggle('is-active', autoMode);
+    dom.auto.setAttribute('aria-pressed', String(autoMode));
     showToast(autoMode ? '자동 진행을 시작합니다.' : '자동 진행을 멈췄습니다.');
     if (autoMode) scheduleAuto();
     else window.clearTimeout(autoTimer);
   }
 
   function openModal(name) {
+    setGameMenu(false);
     window.clearTimeout(autoTimer);
     currentModal = name;
     dom.modalRoot.hidden = false;
@@ -1444,6 +1461,16 @@
     });
 
     dom.dialogueHitbox.addEventListener('click', skipOrAdvance);
+    dom.gameMenuToggle.addEventListener('click', () => {
+      setGameMenu(!dom.gameMenu.classList.contains('is-open'));
+    });
+    dom.gameMenu.addEventListener('click', (event) => {
+      if (event.target.closest('.dialogue-tools button')) setGameMenu(false);
+    });
+    document.addEventListener('pointerdown', (event) => {
+      if (!dom.gameMenu.contains(event.target)) setGameMenu(false);
+    });
+    window.matchMedia('(max-width: 900px), (max-height: 620px)').addEventListener('change', () => setGameMenu(false));
     dom.auto.addEventListener('click', toggleAuto);
     dom.sound.addEventListener('click', () => {
       soundscape.ensure();
@@ -1492,11 +1519,17 @@
     document.addEventListener('keydown', (event) => {
       const target = event.target;
       const isFormField = target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement;
+      if (event.key === 'Escape' && dom.gameMenu.classList.contains('is-open')) {
+        setGameMenu(false, true);
+        return;
+      }
       if (event.key === 'Escape' && currentModal && currentModal !== 'name') {
         closeModal();
         return;
       }
       if (currentModal || isFormField) return;
+      // 버튼에 포커스가 있으면 Enter/Space는 그 버튼을 조작한다.
+      if ((event.key === 'Enter' || event.key === ' ') && target.closest('button')) return;
       if (state.awaiting === 'choice' && /^[1-3]$/.test(event.key)) {
         $$('.choice-button', dom.choiceList)[Number(event.key) - 1]?.click();
         return;
