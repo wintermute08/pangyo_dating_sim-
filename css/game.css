@@ -622,7 +622,13 @@ input:focus-visible {
    * 뺀 것은 0 0 1px 흰 테두리인데, 실제 표시 크기에서는 서브픽셀이라
    * 눈에 띄지 않는다. 바닥 그림자는 그대로 둔다.
    */
-  filter: drop-shadow(0 20px 28px rgba(25, 35, 60, .22));
+  /*
+   * 방향성 그림자. 예전에는 인물 둘레에 균일한 후광이라 어디에도
+   * 닿지 않고 떠 있는 것처럼 보였다. 한쪽으로 밀고 진하게 하면
+   * 뒤쪽 바닥·벽에 지는 그림자로 읽혀 인물이 공간 안에 선다.
+   * 겹은 그대로 한 겹이라 비용은 전과 같다.
+   */
+  filter: drop-shadow(-9px 20px 26px rgba(22, 32, 58, .34));
   translate: -50% 0;
   transform-origin: bottom center;
   animation: none;
