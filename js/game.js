@@ -1,16 +1,47 @@
 (() => {
   'use strict';
 
+  /*
+   * 배경은 미리 흐리게 구운 파일을 쓴다(tools/soften_bg.py).
+   *
+   * 인물과 배경이 똑같이 선명하면 같은 평면에 붙어 보인다. 배경을
+   * 아웃포커스로 날리면 인물이 앞으로 나오는데, CSS filter: blur() 를
+   * 실행 중에 걸면 장면이 바뀔 때마다 화면 전체를 다시 그린다. 실측으로
+   * 프레임 중앙값 35 -> 46ms, 50ms 초과 프레임 9~12% -> 38~42%.
+   *
+   * 파일에 구워 두면 실행 비용이 0 이고, 흐린 그림은 고주파가 없어서
+   * 절반 크기 JPEG 로 저장해도 화면에서 구분이 안 된다(배경 영역 픽셀
+   * 차이 255 중 평균 0.91). 덤으로 41.4MB -> 460KB 가 된다.
+   *
+   * 선명한 원본 PNG 는 지우지 않는다. 타이틀 화면이 bg01 을 그대로
+   * 쓰고(index.html), 흐림 정도를 바꾸려면 원본에서 다시 구워야 한다.
+   * CG 는 클로즈업이라 선명한 쪽을 그대로 쓴다.
+   */
   const ASSETS = {
-    bg01_gate_morning: 'assets/bg01_gate_morning.png',
-    bg02_classroom_noon: 'assets/bg02_classroom_noon.png',
-    bg03_corridor_day: 'assets/bg03_corridor_day.png',
-    bg04_window_afternoon: 'assets/bg04_window_afternoon.png',
-    bg05_gate_sunset: 'assets/bg05_gate_sunset.png',
-    bg06_gym_afternoon: 'assets/bg06_gym_afternoon.png',
+    bg01_gate_morning: 'assets/bg01_gate_morning_soft.jpg',
+    bg02_classroom_noon: 'assets/bg02_classroom_noon_soft.jpg',
+    bg03_corridor_day: 'assets/bg03_corridor_day_soft.jpg',
+    bg04_window_afternoon: 'assets/bg04_window_afternoon_soft.jpg',
+    bg05_gate_sunset: 'assets/bg05_gate_sunset_soft.jpg',
+    bg06_gym_afternoon: 'assets/bg06_gym_afternoon_soft.jpg',
     cg01_desk_closeup: 'assets/cg01_desk_closeup.png',
     cg02_gate_sunset: 'assets/cg02_gate_sunset.png',
     cg03_face_blush: 'assets/cg03_face_blush.png'
+  };
+
+  /*
+   * 갤러리는 그림을 보라고 있는 화면이라 선명한 원본을 쓴다.
+   *
+   * ASSETS 의 배경은 무대용으로 아웃포커스를 구워 둔 것이라 여기 그대로
+   * 쓰면 열어 놓은 항목이 흐리게 나온다. 잠긴 항목에 이미 blur(10px) 가
+   * 걸려 있어서 열린 것과 잠긴 것이 구분되지 않는다.
+   *
+   * 갤러리를 열 때만 받는다. 미리 받기 목록에는 넣지 않는다.
+   */
+  const GALLERY_ASSETS = {
+    bg01_gate_morning: 'assets/bg01_gate_morning.png',
+    bg04_window_afternoon: 'assets/bg04_window_afternoon.png',
+    bg05_gate_sunset: 'assets/bg05_gate_sunset.png'
   };
 
   /*
@@ -1442,7 +1473,7 @@
       const figure = document.createElement('figure');
       figure.className = `gallery-item${open ? '' : ' is-locked'}`;
       const image = document.createElement('img');
-      image.src = ASSETS[item.image];
+      image.src = GALLERY_ASSETS[item.image] || ASSETS[item.image];
       image.alt = open ? item.title : '';
       const caption = document.createElement('figcaption');
       caption.textContent = open ? item.title : 'LOCKED';
