@@ -541,6 +541,9 @@ input:focus-visible {
   inset: 0;
   z-index: 3;
   pointer-events: none;
+  /* 두 컷을 인물 레이어 안에서만 더한다. 보통 합성은 50% + 50%일 때
+     불투명도가 75%가 되어 전환 중 배경이 비치고 인물이 깜박인다. */
+  isolation: isolate;
   /*
    * 인물의 가로 위치. 회전축과 .character 의 left 가 같은 값을 봐야
    * 기울일 때 인물이 위아래로 들리지 않는다. 어긋나면 그 차이만큼
@@ -635,7 +638,9 @@ input:focus-visible {
   /* 위치·크기는 트랜지션하지 않는다. 모바일에서 주소창이 숨었다
      나타날 때 뷰포트 높이가 바뀌는데, height 에 전환이 걸려 있으면
      인물이 0.45초 동안 스르륵 커졌다 작아진다. 실측 49px. */
-  transition: opacity .38s ease, transform .5s cubic-bezier(.2,.8,.2,1), filter .3s ease;
+  /* 투명도는 SpriteTransition에서 두 컷을 같은 시간축으로 처리한다. */
+  transition: none;
+  mix-blend-mode: plus-lighter;
   will-change: opacity, transform;
   pointer-events: none;
 }
@@ -662,13 +667,9 @@ input:focus-visible {
 /* 감정에 따른 한 번짜리 반응. 표정이 바뀌는 순간에만 붙였다 뗀다. */
 
 /*
- * 컷 교체는 animation 이 아니라 transition 으로 한다.
- *
- * animation 은 클래스를 떼는 순간 값이 기본값으로 되돌아간다. 빠르게
- * 넘겨서 페이드가 진행 중일 때 다음 컷이 시작되면, 투명도가 중간값에서
- * 1 로 튀어 인물이 번쩍인다. 실측으로 0.245 -> 1 같은 도약이 10회.
- * transition 은 현재 계산값에서 이어서 보간하므로 중간에 끊겨도 튀지
- * 않는다. 투명도는 JS 가 인라인 스타일로 직접 준다.
+ * 컷 교체는 SpriteTransition의 Web Animations로 처리한다.
+ * 두 컷은 같은 시간축에서 전환하며, 빠르게 넘겨도 현재 전환을 끝낸 뒤
+ * 최신 요청으로 이어진다. CSS transition과 중복해서 적용하지 않는다.
  */
 
 /*

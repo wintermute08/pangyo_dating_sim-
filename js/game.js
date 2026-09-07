@@ -231,6 +231,7 @@
   let typeTimer = 0;
   let voiceLine = '';
   let pendingGender = DEFAULT_GENDER;
+  const spriteTransition = new window.SpriteTransition($('#character-stage'), dom.character, dom.characterGhost);
   const preloadedRoutes = new Set();
 
   /** 고른 루트의 스탠딩만 뒤에서 받아 둔다. 양쪽을 다 받으면 50MB 다. */
@@ -239,18 +240,13 @@
     preloadedRoutes.add(gender);
     const set = PARTNERS[gender] || PARTNERS[DEFAULT_GENDER];
     Object.values(set.looks).forEach((look) => {
-      const image = new Image();
-      image.addEventListener('load', () => {
-        if (typeof image.decode === 'function') image.decode().catch(() => {});
-      }, { once: true });
-      image.src = look.src;
+      spriteTransition.prepare(look.src).catch(() => {});
     });
   }
   let lineGhostTimer = 0;
   let transitionTimer = 0;
   let autoTimer = 0;
   let toastTimer = 0;
-  let characterTimer = 0;
   let isTyping = false;
   let fullText = '';
   let busy = false;
@@ -635,11 +631,10 @@
     window.clearInterval(typeTimer);
     window.clearTimeout(transitionTimer);
     window.clearTimeout(autoTimer);
-    window.clearTimeout(characterTimer);
+    spriteTransition.reset();
     typeTimer = 0;
     transitionTimer = 0;
     autoTimer = 0;
-    characterTimer = 0;
     voice.stop();
     dom.character.style.transition = '';
     dom.character.style.opacity = '';
@@ -1014,176 +1009,10 @@
 
 
   function setCharacter(visible, look = 'calm', fadeOut = 0) {
-    const selected = LOOKS[look] || LOOKS.calm;
     const nextLook = LOOKS[look] ? look : 'calm';
-    const changed = dom.character.getAttribute('src') !== selected.src;
-    const wasVisible = !dom.character.hidden;
-    const previous = {
-      src: dom.character.getAttribute('src'),
-      crop: dom.character.dataset.look || 'full',
-      emotion: dom.character.dataset.emotion || 'calm'
-    };
     state.character = { visible, look: nextLook };
-
-    if (!visible) {
-      window.clearTimeout(characterTimer);
-      characterTimer = 0;
-      dom.characterGhost.hidden = true;
-      dom.characterGhost.style.transition = '';
-      dom.characterGhost.style.opacity = '';
-
-      /*
-       * 장면이 바뀔 때는 배경과 함께 서서히 사라진다.
-       *
-       * 즉시 감추면 인물이 툭 없어졌다가 1~2초 뒤 다시 나타나서 깜박이는
-       * 것처럼 보인다. 실측으로 전환마다 2.4초·1.0초씩 완전히 비어 있었다.
-       * 배경 크로스페이드와 같은 길이로 함께 흐려지면 화면 전체가 한 번에
-       * 넘어가는 것으로 읽힌다.
-       */
-      if (fadeOut > 0 && !config.reducedMotion && !dom.character.hidden) {
-        dom.character.style.transition = `opacity ${fadeOut}ms ease`;
-        dom.character.style.opacity = '0';
-        characterTimer = window.setTimeout(() => {
-          dom.character.hidden = true;
-          dom.character.style.transition = '';
-          dom.character.style.opacity = '';
-          dom.character.style.transform = '';
-          characterTimer = 0;
-        }, fadeOut);
-        return;
-      }
-
-      /*
-       * 장면이 바뀔 때 enterScene 이 여기를 부른다. 그냥 감춘다.
-       *
-       * 서서히 사라지게 해 봤지만 오히려 나빴다. 인물이 흐려지는
-       * 420ms 뒤에 다음 장면에서 다시 나타나는 페이드가 이어져,
-       * 인물이 옅게 보이는 시간이 두 배로 늘었다. 실측으로 흐린
-       * 프레임 비율이 2.0% 에서 6.9% 로 올랐다.
-       * 장면 전환에는 배경 크로스페이드(1초)가 함께 돌기 때문에
-       * 즉시 감추는 편이 덜 눈에 띈다.
-       */
-      dom.character.hidden = true;
-      dom.character.style.transition = '';
-      dom.character.style.opacity = '';
-      dom.character.style.transform = '';
-      return;
-    }
-
-    // 진행 중이던 페이드가 있었는지. 있으면 함부로 걷어내지 않는다.
-    const wasFading = characterTimer !== 0;
-    window.clearTimeout(characterTimer);
-    characterTimer = 0;
-
-    const crossfade = changed && wasVisible && !config.reducedMotion;
-
-    if (crossfade) {
-      /*
-       * 진행 중이던 페이드를 끊을 때 인물이 깜빡이지 않게 한다.
-       *
-       * 두 가지를 지킨다.
-       *
-       * 1. 잔상은 화면에 더 많이 남아 있는 쪽을 쓴다.
-       *    페이드 초반에 끊기면 새 그림은 거의 안 보이고 이전 그림이
-       *    대부분을 차지한다. 그때는 이전 그림을 잔상으로 넘겨야 한다.
-       * 2. 잔상은 항상 완전히 보이는 상태에서 사라지기 시작한다.
-       *    끊긴 시점의 낮은 투명도를 물려받으면 새 그림(0)과 겹쳐
-       *    둘 다 흐려진다. 실측으로 총량이 0 까지 떨어져 인물이
-       *    잠깐 사라졌다. 전체 프레임의 17%.
-       */
-      const ghost = dom.characterGhost;
-      const charOpacity = parseFloat(window.getComputedStyle(dom.character).opacity);
-      const ghostOpacity = ghost.hidden
-        ? 0
-        : parseFloat(window.getComputedStyle(ghost).opacity) || 0;
-      const keepOlder = !ghost.hidden
-        && ghostOpacity > (Number.isFinite(charOpacity) ? charOpacity : 1);
-
-      ghost.style.transition = 'none';
-      if (!keepOlder) {
-        ghost.src = previous.src;
-        ghost.dataset.look = previous.crop;
-        ghost.dataset.emotion = previous.emotion;
-      }
-      ghost.hidden = false;
-      ghost.style.opacity = '1';
-
-      dom.character.style.transition = 'none';
-      dom.character.style.opacity = '0';
-      dom.character.style.transform = '';
-    } else if (wasFading) {
-      /*
-       * 같은 컷으로 다시 호출됐는데 페이드가 진행 중이면 그대로 둔다.
-       *
-       * 여기서 잔상을 숨겨 버리면 새 그림이 아직 흐린 상태라 화면에서
-       * 인물이 순간적으로 옅어진다. 실측으로 총량이 0.87 에서 0.34 로
-       * 떨어졌다. 정리 타이머만 다시 걸어 준다.
-       */
-      dom.character.style.transition = '';
-      dom.character.style.opacity = '1';
-      characterTimer = window.setTimeout(() => {
-        dom.characterGhost.hidden = true;
-        dom.characterGhost.style.opacity = '';
-        dom.character.style.opacity = '';
-        characterTimer = 0;
-      }, 480);
-    } else {
-      dom.characterGhost.hidden = true;
-      dom.characterGhost.style.transition = '';
-      dom.characterGhost.style.opacity = '';
-      dom.character.style.transition = '';
-      dom.character.style.opacity = '';
-    }
-
-    /*
-     * 크롭(data-look)은 height 와 bottom 을 바꾸고 이 둘에는 트랜지션이 없다.
-     * 보이는 상태에서 바꾸면 그대로 튄다(실측 91.65px). 기하를 먼저
-     * 확정하고 그 다음에 화면에 올린다.
-     */
-    dom.character.src = selected.src;
-    dom.character.dataset.look = selected.crop;
-    dom.character.dataset.emotion = nextLook;
-    dom.character.alt = `${partner.name} · ${look}`;
-    dom.character.hidden = false;
-
-    if (crossfade) {
-      void dom.stage.offsetWidth;   // 위에서 준 시작값을 확정시킨다
-      dom.character.style.transition = '';
-      dom.character.style.opacity = '1';
-      dom.characterGhost.style.transition = '';
-      dom.characterGhost.style.opacity = '0';
-      characterTimer = window.setTimeout(() => {
-        dom.characterGhost.hidden = true;
-        dom.characterGhost.style.opacity = '';
-        dom.character.style.opacity = '';
-        characterTimer = 0;
-      }, 480);
-    } else if (!wasVisible && !config.reducedMotion) {
-      /*
-       * 첫 등장도 animation 이 아니라 transition 으로 한다.
-       * animation 은 도중에 클래스를 떼면 값이 기본값으로 튄다.
-       * 등장이 끝나기 전에 다음 대사로 넘어가면 그 튐이 보인다.
-       */
-      /*
-       * 등장은 위치를 옮기지 않고 투명도만 올린다.
-       *
-       * 예전에는 translateY(24px) 에서 미끄러져 들어왔는데, transform
-       * 트랜지션이 0.5초인 반면 opacity 는 0.38초라 이미 불투명해진
-       * 뒤에도 120ms 동안 계속 움직였다. 장면이 바뀔 때마다 인물이
-       * 미세하게 흔들리는 원인이었다. 장면 전환에는 배경 크로스페이드가
-       * 함께 돌기 때문에 위치 이동이 없어도 등장이 밋밋하지 않다.
-       */
-      dom.character.style.transition = 'none';
-      dom.character.style.opacity = '0';
-      dom.character.style.transform = '';
-      void dom.stage.offsetWidth;
-      dom.character.style.transition = '';
-      dom.character.style.opacity = '1';
-      characterTimer = window.setTimeout(() => {
-        dom.character.style.opacity = '';
-        characterTimer = 0;
-      }, 460);
-    }
+    const reducedMotion = config.reducedMotion || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    spriteTransition.set(visible, LOOKS[nextLook], `${partner.name} · ${nextLook}`, reducedMotion, fadeOut);
   }
 
   function setCg(key, immediate = false) {
